@@ -1,0 +1,12 @@
+psutil~=5.9.4
+pypiwin32~=223
+pywin32~=227
+simplejson~=3.17.6
+Jinja2~=3.1.2
+prettytable~=3.4.1
+pyecharts~=1.9.1
+pandas~=1.2.1
+PyQt5~=5.15.4
+easyquotation~=0.7.5
+numpy~=1.23.3
+tushare~=1.2.89

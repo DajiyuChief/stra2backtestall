@@ -1,0 +1,13 @@
+1. Strategy2,py是程序入口
+2. backtest_all.py是策略二实现，trade_strategy2.py是对backtest_all.py的重写
+3. Main.py是主界面
+4. Holder.py是持股列表界面(功能还未实现)
+5. back.py是批量回测界面
+6. customer.py是自定义回测界面
+7. setting.py是设置界面
+8. load_csvdata.py是从保存csv文件中读取数据
+9. buyandsell.py是买卖详情界面
+10. kline.py是生成k线
+11. baseFun.py保存可能用到的功能函数
+12. MessageBox.py弹窗
+13. gol_all.py公用全局变量
