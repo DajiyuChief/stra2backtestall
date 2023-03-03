@@ -27,9 +27,9 @@ from baseFun import split_list_n_list, set_kline_data, get_stock_code, get_name,
     get_need_data, get_path, check_process_running, pull_fun_name, pull_stock_name
 from MessageBox import MessageBox, QuestionBox
 from backtest_all import run2_all
-from load_csvdata import load_finished_code, load_winning_code
+from load_csvdata import load_finished_code, load_winning_code,load_today_buy
 from buyandsellui import BuyandSell
-
+from trade_strategy2 import run
 # 用来装行表头所有复选框 全局变量
 all_header_combobox = []
 
@@ -53,14 +53,14 @@ class Ui_MainWindow(object):
         self.groupBox.setObjectName("groupBox")
         self.gridLayout = QtWidgets.QGridLayout(self.groupBox)
         self.gridLayout.setObjectName("gridLayout")
-        self.startday = QtWidgets.QLineEdit(self.groupBox)
-        self.startday.setMaximumSize(QtCore.QSize(16777215, 30))
-        self.startday.setObjectName("startday")
-        self.gridLayout.addWidget(self.startday, 0, 0, 1, 1)
-        self.endday = QtWidgets.QLineEdit(self.groupBox)
-        self.endday.setMaximumSize(QtCore.QSize(16777215, 30))
-        self.endday.setObjectName("endday")
-        self.gridLayout.addWidget(self.endday, 1, 0, 1, 1)
+        # self.startday = QtWidgets.QLineEdit(self.groupBox)
+        # self.startday.setMaximumSize(QtCore.QSize(16777215, 30))
+        # self.startday.setObjectName("startday")
+        # self.gridLayout.addWidget(self.startday, 0, 0, 1, 1)
+        # self.endday = QtWidgets.QLineEdit(self.groupBox)
+        # self.endday.setMaximumSize(QtCore.QSize(16777215, 30))
+        # self.endday.setObjectName("endday")
+        # self.gridLayout.addWidget(self.endday, 1, 0, 1, 1)
         self.conditionrsi = QtWidgets.QLineEdit(self.groupBox)
         self.conditionrsi.setMaximumSize(QtCore.QSize(16777215, 30))
         self.conditionrsi.setObjectName("conditionrsi")
@@ -154,8 +154,8 @@ class Ui_MainWindow(object):
         self.orderType = Qt.AscendingOrder
         self.satisfaciedlist.setAlternatingRowColors(True)
 
-        self.startday.setPlaceholderText('开始日期')
-        self.endday.setPlaceholderText('结束日期')
+        # self.startday.setPlaceholderText('开始日期')
+        # self.endday.setPlaceholderText('结束日期')
         self.conditionrsi.setPlaceholderText('条件一rsi')
         self.stoploss.setPlaceholderText('止损率')
         self.processnum.setPlaceholderText('创建进程数')
@@ -164,8 +164,8 @@ class Ui_MainWindow(object):
         # self.code.setPlaceholderText('单只股票代码')
 
         today = datetime.datetime.today().strftime('%Y%m%d')
-        self.startday.setText('20220701')
-        self.endday.setText(today)
+        # self.startday.setText('20220701')
+        # self.endday.setText(today)
         self.conditionrsi.setText('0.1')
         self.stoploss.setText('0.2')
         self.processnum.setText('2')
@@ -207,8 +207,8 @@ class Ui_MainWindow(object):
         try:
             processlist = []
             num = int(self.processnum.text())
-            startday = self.startday.text()
-            endday = self.endday.text()
+            # startday = self.startday.text()
+            # endday = self.endday.text()
             conditionrsi = float(self.conditionrsi.text())
             stoploss = float(self.stoploss.text())
             principal = int(self.principal.text())
@@ -220,23 +220,11 @@ class Ui_MainWindow(object):
             df.to_csv('name.csv')
             code_list = sorted(list(
                 set(df['ts_code'].values.tolist()) - set(
-                    load_finished_code(startday, endday, conditionrsi, stoploss, downnotbuy_flag, customer_flag))))
+                    load_finished_code(conditionrsi, stoploss, downnotbuy_flag, customer_flag))))
             splited_list = split_list_n_list(code_list, num)
-            header = ['code', 'date', 'type', 'price', 'high', 'principal']
-            # header = ['code', 'date', 'close', 'high', 'low', 'max_price', 'rsi', 'rsi_var', 'trade_type', 'now_buy_sell',
-            #  'pre_middle_date',
-            #  'mid_step', 'common_buy_boll_days', 'common_sell_boll_days', 'sp_boll_days', 'principal', 'stock_num',
-            #  'add_flag', 'add_principal', 'delay_buy', 'low_rsi', 'win_stop']
-            csv_path = get_path('multi' + str(downnotbuy_flag)) + startday + str(
-                conditionrsi).replace('.', '') + str(stoploss).replace('.', '') + str(
-                downnotbuy_flag) + '.csv'
-            if not os.path.exists(csv_path):
-                with open(csv_path, 'a', encoding='UTF8', newline='') as f:
-                    writer = csv.writer(f)
-                    writer.writerow(header)
             for item in splited_list:
-                process = multiprocessing.Process(target=run2_all, args=(
-                    item, startday, endday, conditionrsi, stoploss, principal, downnotbuy_flag, percent, customer_flag))
+                process = multiprocessing.Process(target=run, args=(
+                    item, conditionrsi, stoploss,  downnotbuy_flag, principal,percent, customer_flag))
                 processlist.append(process)
                 process.start()
             thread1 = threading.Thread(target=check_process_running, args=(processlist, self,))
@@ -248,16 +236,16 @@ class Ui_MainWindow(object):
 
     def refresh_list(self):
         row = 0
-        startday = self.startday.text()
-        endday = self.endday.text()
+        # startday = self.startday.text()
+        # endday = self.endday.text()
         conditionrsi = float(self.conditionrsi.text())
         stoploss = float(self.stoploss.text())
         percent = float(self.winningpercent.text())
         downnotbuy_flag = self.downnotbuy.isChecked()
         customer_flag = False
         try:
-            finished_list = load_finished_code(startday, endday, conditionrsi, stoploss, downnotbuy_flag, customer_flag)
-            satisfied_code_win_name = load_winning_code(startday, endday, conditionrsi, stoploss, percent,
+            finished_list = load_finished_code(conditionrsi, stoploss, downnotbuy_flag, customer_flag)
+            satisfied_code_win_name = load_winning_code(conditionrsi, stoploss, percent,
                                                         downnotbuy_flag, customer_flag)
             self.finishedlist.clear()
             self.satisfaciedlist.setRowCount(len(satisfied_code_win_name))
@@ -295,8 +283,8 @@ class Ui_MainWindow(object):
 
     def get_info(self):
         try:
-            startday = self.startday.text()
-            endday = self.endday.text()
+            # startday = self.startday.text()
+            # endday = self.endday.text()
             conditionrsi = float(self.conditionrsi.text())
             stoploss = float(self.stoploss.text())
             downnotbuy_flag = self.downnotbuy.isChecked()
@@ -309,41 +297,42 @@ class Ui_MainWindow(object):
             # print("选择的内容为：", contents)
 
             if column == 0:
-                saved_dir_path = os.getcwd() + os.path.sep + 'multi' + '\\' + 'saved_data'
+                saved_dir_path = os.getcwd() + os.path.sep + '\\' + 'saved_data'
                 data_path = saved_dir_path + '\\' + contents.replace('.', '') + '.csv'
-                trade_info = get_need_data(data_path, startday, endday, 60, 10)
+                # trade_info = get_need_data(data_path, startday, endday, 60, 10)
+                trade_info = pd.read_csv(data_path)[-100:]
                 trade_info['trade_date'] = pd.to_datetime(trade_info['trade_date'], format='%Y%m%d').apply(
                     lambda x: x.strftime('%Y-%m-%d'))
-                # csv_path = os.getcwd() + os.path.sep + 'multi' + str(
-                #     downnotbuy_flag) + '\\' + startday + endday + str(
-                #     conditionrsi).replace('.', '') + str(stoploss).replace('.', '') + str(
-                #     downnotbuy_flag) + '.csv'
-                csv_path = get_path('multi' + str(downnotbuy_flag)) + startday + endday + str(
-                    conditionrsi).replace('.', '') + str(stoploss).replace('.', '') + str(
-                    downnotbuy_flag) + '.csv'
+                csv_path = os.getcwd() + os.path.sep + 'multi' + '\\' + 'multi' + str(downnotbuy_flag) + '\\' + str(conditionrsi) + str(stoploss) + '\\' + contents + '.csv'
                 url = get_path('multiHtml') + contents.replace('.', '') + '.html'
-                df = pd.read_csv(csv_path)
-                details = df[df['code'] == contents]
+                details = pd.read_csv(csv_path).iloc[-60:]
+                details = details[details['trade_type'] != 0]
                 date_list = details['date'].values.tolist()
-                buysell_list = details['type'].values.tolist()
+                buysell_list = details['trade_type'].values.tolist()
                 trans_list = []
                 trade_info = trade_info.set_index('trade_date')
                 set_kline_data(contents, details, trade_info, url)
-                # url = os.getcwd() + os.path.sep + 'generate_html' + '\\' + contents.replace('.', '') + '.html'
                 for type in buysell_list:
                     if type == 1:
                         trans_list.append('买')
-                    else:
+                    elif type == 2:
+                        trans_list.append('加')
+                    elif type == 3:
+                        trans_list.append('止盈')
+                    elif type == -1:
                         trans_list.append('卖')
-                price_list = details['price'].values.tolist()
-                principal_list = details['principal'].values.tolist()
+                    elif type == -2:
+                        trans_list.append('减')
+                    elif type == -3:
+                        trans_list.append('止损')
+
+                price_list = details['close'].values.tolist()
                 self.buyandsell = BuyandSell()
                 self.buyandsell.tableWidget.setRowCount(len(details))
                 for row in range(len(details)):
                     self.buyandsell.tableWidget.setItem(row, 0, QTableWidgetItem(str(date_list[row])))
                     self.buyandsell.tableWidget.setItem(row, 1, QTableWidgetItem(trans_list[row]))
                     self.buyandsell.tableWidget.setItem(row, 2, QTableWidgetItem(str(price_list[row])))
-                    self.buyandsell.tableWidget.setItem(row, 3, QTableWidgetItem(str(principal_list[row])))
                 self.buyandsell.browser.load(QUrl.fromLocalFile(url))
                 self.buyandsell.show()
         except Exception as e:
@@ -450,40 +439,30 @@ class Ui_MainWindow(object):
 
     def today_buy(self):
         row = 0
-        startday = self.startday.text()
-        endday = self.endday.text()
+        # startday = self.startday.text()
+        # endday = self.endday.text()
         conditionrsi = float(self.conditionrsi.text())
         stoploss = float(self.stoploss.text())
         percent = float(self.winningpercent.text())
         downnotbuy_flag = self.downnotbuy.isChecked()
         customer_flag = False
         try:
-            today = datetime.datetime.today().strftime('%Y%m%d')
-            buy_list = []
-            path = os.getcwd() + os.path.sep + 'multi' + '\\' + 'multi' + str(downnotbuy_flag) + '\\' + startday + endday + str(conditionrsi).replace('.', '') + str(stoploss).replace('.', '') + str(downnotbuy_flag) + '.csv'
-            df = pd.read_csv(path)
-            finished_list = load_finished_code(startday, endday, conditionrsi, stoploss, downnotbuy_flag, customer_flag)
-            for code in finished_list:
-                data = df[df['code'] == code].tail(1)
-                if data['date'].values[0] == today and data['type'].values[0] == 1:
-                    name = get_name(code)
-                    win = (float(data['principal'].values[0]) / 100000) - 1
-                    buy_list.append([code,name,win])
-            self.satisfaciedlist.setRowCount(len(buy_list))
-            while row < len(buy_list):
+            satisfied_code_win_name = load_today_buy(conditionrsi, stoploss,downnotbuy_flag)
+            self.satisfaciedlist.setRowCount(len(satisfied_code_win_name))
+            while row < len(satisfied_code_win_name):
                 win = QTableWidgetItem()
-                # upper = QTableWidgetItem()
-                # diff = QTableWidgetItem()
-                win.setData(QtCore.Qt.DisplayRole, buy_list[row][2])
-                # upper.setData(QtCore.Qt.DisplayRole, satisfied_code_win_name[row][4])
-                # diff.setData(QtCore.Qt.DisplayRole, satisfied_code_win_name[row][5])
-                self.satisfaciedlist.setItem(row, 0, QTableWidgetItem(buy_list[row][0]))
-                self.satisfaciedlist.setItem(row, 1, QTableWidgetItem(str(buy_list[row][1])))
-                self.satisfaciedlist.setItem(row, 2, QTableWidgetItem(str(startday + '-' + endday)))
+                upper = QTableWidgetItem()
+                diff = QTableWidgetItem()
+                win.setData(QtCore.Qt.DisplayRole, satisfied_code_win_name[row][3])
+                upper.setData(QtCore.Qt.DisplayRole, satisfied_code_win_name[row][4])
+                diff.setData(QtCore.Qt.DisplayRole, satisfied_code_win_name[row][5])
+                self.satisfaciedlist.setItem(row, 0, QTableWidgetItem(satisfied_code_win_name[row][0]))
+                self.satisfaciedlist.setItem(row, 1, QTableWidgetItem(str(satisfied_code_win_name[row][1])))
+                self.satisfaciedlist.setItem(row, 2, QTableWidgetItem(satisfied_code_win_name[row][2]))
                 # self.satisfaciedlist.setItem(row, 3, QTableWidgetItem(str(satisfied_code_win_name[row][3])))
                 self.satisfaciedlist.setItem(row, 3, win)
-                # self.satisfaciedlist.setItem(row, 4, upper)
-                # self.satisfaciedlist.setItem(row, 5, diff)
+                self.satisfaciedlist.setItem(row, 4, upper)
+                self.satisfaciedlist.setItem(row, 5, diff)
                 row = row + 1
             self.satisfaciedlist.sortItems(0, Qt.AscendingOrder)
         except Exception as e:

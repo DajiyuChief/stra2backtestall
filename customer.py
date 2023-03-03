@@ -27,7 +27,7 @@ from baseFun import get_stock_code, get_name, split_list_n_list, mkdir, kill_pro
 from buyandsellui import BuyandSell
 from gol_all import get_value, set_value
 from load_csvdata import load_finished_code, load_winning_code
-
+from trade_strategy2 import run
 
 class Ui_customer(object):
     def setupUi(self, customer):
@@ -276,20 +276,11 @@ class Ui_customer(object):
             df = pd.read_csv(list_path)
             code_list = sorted(list(
                 set(df['code'].values.tolist()) - set(
-                    load_finished_code(startday, endday, conditionrsi, stoploss, downnotbuy_flag, customer_flag))))
+                    load_finished_code(conditionrsi, stoploss, downnotbuy_flag, customer_flag))))
             splited_list = split_list_n_list(code_list, num)
-            header = ['code', 'date', 'type', 'price', 'high', 'principal']
-            csv_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(
-                downnotbuy_flag) + '\\' + startday + endday + str(
-                conditionrsi).replace('.', '') + str(stoploss).replace('.', '') + str(
-                downnotbuy_flag) + '.csv'
-            if not os.path.exists(csv_path):
-                with open(csv_path, 'a', encoding='UTF8', newline='') as f:
-                    writer = csv.writer(f)
-                    writer.writerow(header)
             for item in splited_list:
-                process = multiprocessing.Process(target=run2_all, args=(
-                    item, startday, endday, conditionrsi, stoploss, principal, downnotbuy_flag, 0.1, customer_flag))
+                process = multiprocessing.Process(target=run, args=(
+                    item, conditionrsi, stoploss, downnotbuy_flag, principal, -10000, customer_flag))
                 processlist.append(process)
                 process.start()
             thread1 = threading.Thread(target=check_process_running, args=(processlist, self,))
@@ -310,7 +301,7 @@ class Ui_customer(object):
         self.refresh_customer_lsit()
         try:
 
-            satisfied_code_win_name = load_winning_code(startday, endday, conditionrsi, stoploss, percent,
+            satisfied_code_win_name = load_winning_code(conditionrsi, stoploss, percent,
                                                         downnotbuy_flag, customer_flag)
             self.outputtable.setRowCount(len(satisfied_code_win_name))
             while row < len(satisfied_code_win_name):
@@ -351,38 +342,44 @@ class Ui_customer(object):
             column = self.outputtable.selectedItems()[0].column()  # 获取选中文本所在的列
             contents = self.outputtable.selectedItems()[0].text()  # 获取选中文本内容
             if column == 0:
-                saved_dir_path = os.getcwd() + os.path.sep +'customer' + '\\'+'saved_data'
+                saved_dir_path = os.getcwd() + os.path.sep  + '\\'+'saved_data'
                 data_path = saved_dir_path + '\\' + contents.replace('.', '') + '.csv'
-                trade_info = get_need_data(data_path, startday, endday, 60, 10)
+                # trade_info = get_need_data(data_path, startday, endday, 60, 10)
+                trade_info = pd.read_csv(data_path)[-100:]
                 trade_info['trade_date'] = pd.to_datetime(trade_info['trade_date'], format='%Y%m%d').apply(
                     lambda x: x.strftime('%Y-%m-%d'))
-                csv_path = os.getcwd() + os.path.sep +'customer'+ '\\'+'customer' + str(
-                    downnotbuy_flag) + '\\' + startday + endday + str(
-                    conditionrsi).replace('.', '') + str(stoploss).replace('.', '') + str(
-                    downnotbuy_flag) + '.csv'
-                df = pd.read_csv(csv_path)
-                details = df[df['code'] == contents]
+                csv_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(downnotbuy_flag) + '\\' + str(conditionrsi) + str(stoploss) + '\\' + contents + '.csv'
+                details = pd.read_csv(csv_path).iloc[-60:]
+                details = details[details['trade_type'] != 0]
                 date_list = details['date'].values.tolist()
-                buysell_list = details['type'].values.tolist()
+                buysell_list = details['trade_type'].values.tolist()
                 trans_list = []
                 trade_info = trade_info.set_index('trade_date')
-
                 url = os.getcwd() + os.path.sep + 'customer' + '\\' + 'generate_html' + '\\' + contents.replace('.','') + '.html'
                 set_kline_data(contents, details, trade_info,url)
                 for type in buysell_list:
                     if type == 1:
                         trans_list.append('买')
-                    else:
+                    elif type == 2:
+                        trans_list.append('加')
+                    elif type == 3:
+                        trans_list.append('止盈')
+                    elif type == -1:
                         trans_list.append('卖')
-                price_list = details['price'].values.tolist()
-                principal_list = details['principal'].values.tolist()
+                    elif type == -2:
+                        trans_list.append('减')
+                    elif type == -3:
+                        trans_list.append('止损')
+
+                price_list = details['close'].values.tolist()
+                # principal_list = details['principal'].values.tolist()
                 self.buyandsell = BuyandSell()
                 self.buyandsell.tableWidget.setRowCount(len(details))
                 for row in range(len(details)):
                     self.buyandsell.tableWidget.setItem(row, 0, QTableWidgetItem(str(date_list[row])))
                     self.buyandsell.tableWidget.setItem(row, 1, QTableWidgetItem(trans_list[row]))
                     self.buyandsell.tableWidget.setItem(row, 2, QTableWidgetItem(str(price_list[row])))
-                    self.buyandsell.tableWidget.setItem(row, 3, QTableWidgetItem(str(principal_list[row])))
+                    # self.buyandsell.tableWidget.setItem(row, 3, QTableWidgetItem(str(principal_list[row])))
                 self.buyandsell.browser.load(QUrl.fromLocalFile(url))
                 self.buyandsell.show()
         except Exception as e:

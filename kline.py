@@ -21,6 +21,14 @@ def plot_kline(data, name, buy_sell):
     buy_high = buy_sell[1]
     sell_date = buy_sell[2]
     sell_high = buy_sell[3]
+    add_date = buy_sell[4]
+    add_high = buy_sell[5]
+    minus_date = buy_sell[6]
+    minus_high = buy_sell[7]
+    stopwin_date = buy_sell[8]
+    stopwin_high = buy_sell[9]
+    stoploss_date = buy_sell[10]
+    stoploss_high = buy_sell[11]
     kline = (
         Kline(init_opts=opts.InitOpts(width="1350px", height="500px"))  # 设置画布大小
         .add_xaxis(xaxis_data=list(data.index))  # 将原始数据的index转化为list作为横坐标
@@ -124,7 +132,7 @@ def plot_kline(data, name, buy_sell):
             markpoint_opts=opts.MarkPointOpts(
                 data=[
                     opts.MarkPointItem(coord=[buy_date[i], buy_high[i]], name='test', value='买',
-                                       itemstyle_opts={'color': '#08a2f9'}),
+                                       itemstyle_opts={'color': '#f75d06'}),
                 ]
             ), )
     for i in range(0, len(sell_date)):
@@ -134,9 +142,50 @@ def plot_kline(data, name, buy_sell):
             markpoint_opts=opts.MarkPointOpts(
                 data=[
                     opts.MarkPointItem(coord=[sell_date[i], sell_high[i]], name='test', value='卖',
-                                       itemstyle_opts={'color': '#f75d06'}),
+                                       itemstyle_opts={'color': '#08a2f9'}),
                 ]
             ), )
+    for i in range(0, len(stopwin_date)):
+        kline.add_yaxis(
+            series_name="买卖",
+            y_axis="",
+            markpoint_opts=opts.MarkPointOpts(
+                data=[
+                    opts.MarkPointItem(coord=[stopwin_date[i], stopwin_high[i]], name='test', value='赢',
+                                       itemstyle_opts={'color': '#F53D3D'}),
+                ]
+            ), )
+    for i in range(0, len(stoploss_date)):
+        kline.add_yaxis(
+            series_name="买卖",
+            y_axis="",
+            markpoint_opts=opts.MarkPointOpts(
+                data=[
+                    opts.MarkPointItem(coord=[stoploss_date[i], stoploss_high[i]], name='test', value='损',
+                                       itemstyle_opts={'color': '#3FFF3F'}),
+                ]
+            ), )
+    for i in range(0, len(add_date)):
+        kline.add_yaxis(
+            series_name="买卖",
+            y_axis="",
+            markpoint_opts=opts.MarkPointOpts(
+                data=[
+                    opts.MarkPointItem(coord=[add_date[i], add_high[i]], name='test', value='加',
+                                       itemstyle_opts={'color': '#B53D3D'}),
+                ]
+            ), )
+    for i in range(0, len(minus_date)):
+        kline.add_yaxis(
+            series_name="买卖",
+            y_axis="",
+            markpoint_opts=opts.MarkPointOpts(
+                data=[
+                    opts.MarkPointItem(coord=[minus_date[i], minus_high[i]], name='test', value='减',
+                                       itemstyle_opts={'color': '#4AC2C2'}),
+                ]
+            ), )
+
 
     kline.overlap(line)
     # kline.render("kline.html")

@@ -13,7 +13,7 @@ from kline import plot_kline
 
 pro = ts.pro_api('f558cbc6b24ed78c2104e209a8a8986b33ec66b7c55bcfa2f46bc108')
 data = pro.query('trade_cal', start_date='20210101', end_date=datetime.date.today().strftime("%Y%m%d"), is_open='1')
-date_list = list(data['cal_date'])
+date_list = list(data['cal_date'])[::-1]
 date_int_list = list(map(int, date_list))
 
 
@@ -26,6 +26,7 @@ def setdata(start_day, end_day, stock_code):
         df = []
     df = df.sort_values(by='trade_date', ascending=True)
     return df
+
 
 def save_trade_date():
     # 获取交易日
@@ -83,20 +84,42 @@ def mkdir(path):
 def set_kline_data(code, details, trade_info, url):
     buy = []
     sell = []
+    add = []
+    minus = []
+    stopwin = []
+    stoploss = []
     buy_high = []
     sell_high = []
     name = get_name(code)
-    buy_date = details[details['type'] == 1]['date'].values.tolist()
-    sell_date = details[details['type'] == 0]['date'].values.tolist()
-    buy_high = details[details['type'] == 1]['high'].values.tolist()
-    sell_high = details[details['type'] == 0]['high'].values.tolist()
+    buy_date = details[details['trade_type'] == 1]['date'].values.tolist()
+    sell_date = details[details['trade_type'] == -1]['date'].values.tolist()
+    add_date = details[details['trade_type'] == 2]['date'].values.tolist()
+    minus_date = details[details['trade_type'] == -2]['date'].values.tolist()
+    stopwin_date = details[details['trade_type'] == 3]['date'].values.tolist()
+    stoploss_date = details[details['trade_type'] == -3]['date'].values.tolist()
+    buy_high = details[details['trade_type'] == 1]['high'].values.tolist()
+    sell_high = details[details['trade_type'] == -1]['high'].values.tolist()
+    add_high = details[details['trade_type'] == 2]['high'].values.tolist()
+    minus_high = details[details['trade_type'] == -2]['high'].values.tolist()
+    stopwin_high = details[details['trade_type'] == 3]['high'].values.tolist()
+    stoploss_high = details[details['trade_type'] == -3]['high'].values.tolist()
     for item in buy_date:
         buy.append(datetime.datetime.strptime(str(item), '%Y%m%d').strftime('%Y-%m-%d'))
     for item in sell_date:
         sell.append(datetime.datetime.strptime(str(item), '%Y%m%d').strftime('%Y-%m-%d'))
+    for item in add_date:
+        add.append(datetime.datetime.strptime(str(item), '%Y%m%d').strftime('%Y-%m-%d'))
+    for item in minus_date:
+        minus.append(datetime.datetime.strptime(str(item), '%Y%m%d').strftime('%Y-%m-%d'))
+    for item in stopwin_date:
+        stopwin.append(datetime.datetime.strptime(str(item), '%Y%m%d').strftime('%Y-%m-%d'))
+    for item in stoploss_date:
+        stoploss.append(datetime.datetime.strptime(str(item), '%Y%m%d').strftime('%Y-%m-%d'))
 
     # grid = plot_kline_volume_signal(trade_info, name, [buy, buy_high, sell, sell_high])
-    kline = plot_kline(trade_info, name, [buy, buy_high, sell, sell_high])
+    kline = plot_kline(trade_info, name,
+                       [buy, buy_high, sell, sell_high, add, add_high, minus, minus_high, stopwin, stopwin_high,
+                        stoploss, stoploss_high])
     # url = 'generate_html' + '\\' + code.replace('.', '') + '.html'
     # grid.render(url)
     kline.render(url)
@@ -156,9 +179,11 @@ def get_stock_code(symbol):
 
 
 def find_real_start_end(start, end):
+    global date_int_list
     # data = pro.query('trade_cal', start_date=start, end_date=end, is_open='1')
     # date_list = list(data['cal_date'])
     arr = np.array(date_int_list)
+    # print(date_int_list)
     if int(start) not in date_int_list:
         start = arr[arr >= int(start)][0]
     if int(end) not in date_int_list:
@@ -214,15 +239,15 @@ def create_customer_dir():
 def create_csv():
     list1_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'custmoerlist.csv'
     list2_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'holdlist.csv'
-    list3_path = os.getcwd() + os.path.sep + 'multi' + '\\' + 'multi' + str(True) + '\\' + 'finishedlist.csv'
-    list4_path = os.getcwd() + os.path.sep + 'multi' + '\\' + 'multi' + str(False) + '\\' + 'finishedlist.csv'
-    list5_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(False) + '\\' + 'finishedlist.csv'
-    list6_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(True) + '\\' + 'finishedlist.csv'
+    # list3_path = os.getcwd() + os.path.sep + 'multi' + '\\' + 'multi' + str(True) + '\\' + 'finishedlist.csv'
+    # list4_path = os.getcwd() + os.path.sep + 'multi' + '\\' + 'multi' + str(False) + '\\' + 'finishedlist.csv'
+    # list5_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(False) + '\\' + 'finishedlist.csv'
+    # list6_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(True) + '\\' + 'finishedlist.csv'
     header1 = ['code', 'name']
     header2 = ['code', 'name', 'first_buy_date', 'first_buy_price', 'current_cost_price', 'number_of_stock',
                'current_market_value', 'win_percnet', 'up_percent']
     header3 = ['code']
-    header4 = ['code','priority']
+    header4 = ['code', 'priority']
     if not os.path.exists(list1_path):
         with open(list1_path, 'a', encoding='UTF8', newline='') as f:
             writer = csv.writer(f)
@@ -231,20 +256,30 @@ def create_csv():
         with open(list2_path, 'a', encoding='UTF8', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(header2)
-    for path in [list3_path,list4_path,list5_path,list6_path]:
-        if not os.path.exists(path):
-            with open(path, 'a', encoding='UTF8', newline='') as f:
-                writer = csv.writer(f)
-                writer.writerow(header3)
+    # for path in [list3_path,list4_path,list5_path,list6_path]:
+    #     if not os.path.exists(path):
+    #         with open(path, 'a', encoding='UTF8', newline='') as f:
+    #             writer = csv.writer(f)
+    #             writer.writerow(header3)
     if not os.path.exists('priority.csv'):
         with open('priority.csv', 'a', encoding='UTF8', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(header4)
 
+
 def write_to_csv(path, content):
     with open(path, 'a', encoding='UTF8', newline='') as f:
         writer = csv.writer(f)
+        print()
         writer.writerow(content)
+
+
+def create_finished_list(path):
+    header = ['code', 'name', 'span', 'win_percent', 'up_percent', 'diff_percent', 'trade_type']
+    if not os.path.exists(path):
+        with open(path, 'a', encoding='UTF8', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(header)
 
 
 def connect_database(address, port, user, password):
@@ -290,6 +325,7 @@ def get_path(dir):
     if dir == 'multisave':
         return os.getcwd() + os.path.sep + 'multi' + '\\' + 'saved_data' + '\\'
 
+
 def different_priority_stock():
     code_list = pd.read_csv('name.csv')['ts_code'].values.tolist()
     today = datetime.datetime.today().strftime('%Y%m%d')
@@ -297,17 +333,20 @@ def different_priority_stock():
     last_year = last_year.strftime('%Y%m%d')
     for code in code_list:
         priority = 2
-        df = setdata(last_year,today,code)
+        df = setdata(last_year, today, code)
         max_price = max(df['close'].values.tolist())
         min_price = min(df['close'].values.tolist())
         today_close = df['close'].values.tolist()[-1]
         if (today_close > 2 * min_price) or (today_close > 0.8 * max_price):
             priority = 1
-        print(max_price,min_price,today_close,priority)
+        print(max_price, min_price, today_close, priority)
         with open('priority.csv', 'a', encoding='UTF8', newline='') as f:
             writer = csv.writer(f)
             writer.writerow([code, priority])
+
+
 mkdir(os.getcwd() + os.path.sep + 'customer')
+mkdir(os.getcwd() + os.path.sep + 'saved_data')
 create_all_dir()
 create_customer_dir()
 create_csv()
