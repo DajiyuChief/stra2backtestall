@@ -44,10 +44,12 @@ def load_winning_code(rsi, stoploss, percnet, downnotbuy, type):
     finished_list = load_finished_code(rsi, stoploss, downnotbuy, type)
     satisfied_list = []
     if not type:
-        finish_csv = pd.read_csv(csv_path)
+        finish_csv = pd.read_csv(csv_path).drop_duplicates(subset='code', keep='last')
+        # finishlist_csv = pd.read_csv(finishlist_path).drop_duplicates(subset='code', keep='last')
+        # finishlist_csv.to_csv(finishlist_path, index=False)
         satisfied_csv = finish_csv[finish_csv['win_percent'] >= percnet*100]
     elif type:
-        finish_csv = pd.read_csv(csv_path)
+        finish_csv = pd.read_csv(csv_path).drop_duplicates(subset='code', keep='last')
         satisfied_csv = finish_csv
     # print(satisfied_csv.values.tolist())
     # if not type:

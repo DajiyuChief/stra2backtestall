@@ -535,6 +535,28 @@ def low_to_high(pre_middle_date, date):
         return True
     return False
 
+def settoday():
+    """
+    设置今日日期
+    :return: 字符串日期
+    """
+    time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    today = datetime.today().strftime('%Y%m%d')
+    offset = timedelta(days=1)
+    yes = (datetime.today() - offset).strftime('%Y%m%d')
+    nowtime = time[11:13]
+    nowminute = time[14:16]
+    if nowtime[0] == 0:
+        # 把时间截取一下以判断早中晚
+        # 如果nowtime前面带有0，比如08，把0去掉
+        # 如果nowtime第一位不是0，如20，不作处理
+        nowtime = nowtime[1]
+    if nowminute[0] == 0:
+        nowminute = nowminute[1]
+    if int(nowtime) < 9 or (int(nowtime) == 9 and int(nowminute) <= 30):
+        return yes
+    else:
+        return today
 
 def first_mid(date):
     """
@@ -898,9 +920,11 @@ def rest_days_insert(code, date, percent, stoploss, downnotbuy, principal):
 
 
 def first_run(code, percent, stoploss, downnotbuy, principal):
-    today = datetime.today().strftime('%Y%m%d')
-    offset = offset = timedelta(days=90)
-    start = (datetime.today() - offset).strftime('%Y%m%d')
+    # today = datetime.today().strftime('%Y%m%d')
+    today = settoday()
+    offset = timedelta(days=90)
+    # start = (datetime.today() - offset).strftime('%Y%m%d')
+    start = (datetime.strptime(settoday(), "%Y%m%d") - offset).strftime('%Y%m%d')
     set_info(today, today, code, 'realtime')
     trans_date = used_date(start, today)
     first_day = trans_date[0]
@@ -923,7 +947,8 @@ def not_first_run(code, percent, stoploss, downnotbuy, principal,customer_flag):
     trade_flag_list = df
     # print(path)
     last_date = str(df[df['code'] == code].tail(1)['date'].values[0])
-    today = datetime.today().strftime('%Y%m%d')
+    # today = datetime.today().strftime('%Y%m%d')
+    today = settoday()
     if last_date == today:
         last_date = str(df[df['code'] == code].tail(2)['date'].values[0])
         trade_flag_list = trade_flag_list.drop(trade_flag_list.tail(1).index)
@@ -981,8 +1006,9 @@ def run(code_list, percent, stoploss, downnotbuy, principal, winpercent, custome
             name = get_name(code)
 
             write_to_csv(finishlist_path, [code,name,span_days,win_percent,up_percent,diff_percent,trade_type])
-            finishlist_csv = pd.read_csv(finishlist_path).drop_duplicates(subset='code', keep='last')
-            finishlist_csv.to_csv(finishlist_path, index=False)
+            # finishlist_csv = pd.read_csv(finishlist_path).drop_duplicates(subset='code', keep='first')
+            # print(finishlist_csv)
+            # finishlist_csv.to_csv(finishlist_path, index=False)
 
             print(win_percent,up_percent,diff_percent,span_days,trade_type)
             trade_flag_list.drop(trade_flag_list.index, inplace=True)  # 清除trade_flag_list
@@ -1012,7 +1038,7 @@ def run_customer(start, end, code_list, percent, stoploss, downnotbuy, principal
             trade_flag_list.to_csv(path, index=False)
             save_back_tocsv(code, winpercent, True)
             write_to_csv(finishlist_path, [code])
-            finishlist_csv = pd.read_csv(finishlist_path).drop_duplicates(subset='code', keep='last')
+            finishlist_csv = pd.read_csv(finishlist_path).drop_duplicates(subset='code', keep='first')
             finishlist_csv.to_csv(finishlist_path, index=False)
             trade_flag_list.drop(trade_flag_list.index, inplace=True)
             time.sleep(1)
@@ -1063,7 +1089,7 @@ def save_back_tocsv(code, winpercent, customer_flag):
     #         new_df.to_csv(csvpath)
 
 #
-run(['600073.SH', '000005.SZ'], 0.1, 0.2, True, 100000, 0.1,False)
+# run(['600073.SH', '000005.SZ'], 0.1, 0.2, True, 100000, 0.1,False)
 # run(['600073.SH', '000005.SZ'], 0.1, 0.2, True, 100000, 0.1,True)
 # run_customer('20220707', '20230211', ['600073.SH', '000005.SZ'], 0.1, 0.2, True, 100000, 0.1)
 # run_customer('20220707', '20230211', ['600073.SH'], 0.1, 0.2, True, 100000, 0.1)

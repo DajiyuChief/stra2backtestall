@@ -18,6 +18,7 @@ import pandas as pd
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt, QUrl
+from PyQt5.QtGui import QBrush, QColor
 from PyQt5.QtWidgets import QWidget, QTableWidgetItem, QAbstractItemView, QHeaderView, qApp
 
 from MessageBox import MessageBox, QuestionBox
@@ -28,6 +29,7 @@ from buyandsellui import BuyandSell
 from gol_all import get_value, set_value
 from load_csvdata import load_finished_code, load_winning_code
 from trade_strategy2 import run
+
 
 class Ui_customer(object):
     def setupUi(self, customer):
@@ -46,14 +48,14 @@ class Ui_customer(object):
         self.groupBox.setObjectName("groupBox")
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.groupBox)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
-        self.startday = QtWidgets.QLineEdit(self.groupBox)
-        self.startday.setMaximumSize(QtCore.QSize(16777215, 35))
-        self.startday.setObjectName("startday")
-        self.verticalLayout_2.addWidget(self.startday)
-        self.endday = QtWidgets.QLineEdit(self.groupBox)
-        self.endday.setMaximumSize(QtCore.QSize(16777215, 35))
-        self.endday.setObjectName("endday")
-        self.verticalLayout_2.addWidget(self.endday)
+        # self.startday = QtWidgets.QLineEdit(self.groupBox)
+        # self.startday.setMaximumSize(QtCore.QSize(16777215, 35))
+        # self.startday.setObjectName("startday")
+        # self.verticalLayout_2.addWidget(self.startday)
+        # self.endday = QtWidgets.QLineEdit(self.groupBox)
+        # self.endday.setMaximumSize(QtCore.QSize(16777215, 35))
+        # self.endday.setObjectName("endday")
+        # self.verticalLayout_2.addWidget(self.endday)
         self.conditionrsi = QtWidgets.QLineEdit(self.groupBox)
         self.conditionrsi.setMaximumSize(QtCore.QSize(16777215, 35))
         self.conditionrsi.setObjectName("conditionrsi")
@@ -167,16 +169,17 @@ class Ui_customer(object):
         self.outputtable.doubleClicked.connect(self.get_info)
         self.outputtable.horizontalHeader().sectionClicked.connect(self.sort_by_column)
         self.downnotbuy.clicked.connect(self.refresh_list)
+        self.todaytestbutton.clicked.connect(self.run_customer)
 
-        self.startday.setPlaceholderText('开始日期')
-        self.endday.setPlaceholderText('结束日期')
+        # self.startday.setPlaceholderText('开始日期')
+        # self.endday.setPlaceholderText('结束日期')
         self.conditionrsi.setPlaceholderText('条件一rsi')
         self.stoploss.setPlaceholderText('止损率')
         self.processnum.setPlaceholderText('创建进程数')
         self.principal.setPlaceholderText('资金')
         today = datetime.datetime.today().strftime('%Y%m%d')
-        self.startday.setText('20220701')
-        self.endday.setText(today)
+        # self.startday.setText('20220701')
+        # self.endday.setText(today)
         self.conditionrsi.setText('0.1')
         self.stoploss.setText('0.2')
         self.processnum.setText('2')
@@ -265,8 +268,8 @@ class Ui_customer(object):
         try:
             processlist = []
             num = int(self.processnum.text())
-            startday = self.startday.text()
-            endday = self.endday.text()
+            # startday = self.startday.text()
+            # endday = self.endday.text()
             conditionrsi = float(self.conditionrsi.text())
             stoploss = float(self.stoploss.text())
             principal = int(self.principal.text())
@@ -274,16 +277,18 @@ class Ui_customer(object):
             customer_flag = True
             list_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'custmoerlist.csv'
             df = pd.read_csv(list_path)
-            code_list = sorted(list(
-                set(df['code'].values.tolist()) - set(
-                    load_finished_code(conditionrsi, stoploss, downnotbuy_flag, customer_flag))))
+            # code_list = sorted(list(
+            #     set(df['code'].values.tolist()) - set(
+            #         load_finished_code(conditionrsi, stoploss, downnotbuy_flag, customer_flag))))
+            code_list = df['code'].values.tolist()
             splited_list = split_list_n_list(code_list, num)
             for item in splited_list:
                 process = multiprocessing.Process(target=run, args=(
                     item, conditionrsi, stoploss, downnotbuy_flag, principal, -10000, customer_flag))
                 processlist.append(process)
                 process.start()
-            thread1 = threading.Thread(target=check_process_running, args=(processlist, self,))
+            thread1 = threading.Thread(target=check_process_running, args=(
+            processlist, self, conditionrsi, stoploss, customer_flag, downnotbuy_flag,))
             thread1.start()
         except Exception as e:
             message = MessageBox()
@@ -291,8 +296,8 @@ class Ui_customer(object):
 
     def refresh_list(self):
         row = 0
-        startday = self.startday.text()
-        endday = self.endday.text()
+        # startday = self.startday.text()
+        # endday = self.endday.text()
         conditionrsi = float(self.conditionrsi.text())
         stoploss = float(self.stoploss.text())
         percent = float(0.1)
@@ -305,6 +310,7 @@ class Ui_customer(object):
                                                         downnotbuy_flag, customer_flag)
             self.outputtable.setRowCount(len(satisfied_code_win_name))
             while row < len(satisfied_code_win_name):
+                trade_type = satisfied_code_win_name[row][6]
                 win = QTableWidgetItem()
                 upper = QTableWidgetItem()
                 diff = QTableWidgetItem()
@@ -317,6 +323,10 @@ class Ui_customer(object):
                 self.outputtable.setItem(row, 3, win)
                 self.outputtable.setItem(row, 4, upper)
                 self.outputtable.setItem(row, 5, diff)
+                if trade_type > 0:
+                    self.outputtable.item(row, 0).setBackground(QBrush(QColor(181, 61, 61)))
+                elif trade_type < 0:
+                    self.outputtable.item(row, 0).setBackground(QBrush(QColor(74, 194, 194)))
                 row = row + 1
         except Exception as e:
             message = MessageBox()
@@ -332,8 +342,8 @@ class Ui_customer(object):
 
     def get_info(self):
         try:
-            startday = self.startday.text()
-            endday = self.endday.text()
+            # startday = self.startday.text()
+            # endday = self.endday.text()
             conditionrsi = float(self.conditionrsi.text())
             stoploss = float(self.stoploss.text())
             downnotbuy_flag = self.downnotbuy.isChecked()
@@ -342,21 +352,23 @@ class Ui_customer(object):
             column = self.outputtable.selectedItems()[0].column()  # 获取选中文本所在的列
             contents = self.outputtable.selectedItems()[0].text()  # 获取选中文本内容
             if column == 0:
-                saved_dir_path = os.getcwd() + os.path.sep  + '\\'+'saved_data'
+                saved_dir_path = os.getcwd() + os.path.sep + '\\' + 'saved_data'
                 data_path = saved_dir_path + '\\' + contents.replace('.', '') + '.csv'
                 # trade_info = get_need_data(data_path, startday, endday, 60, 10)
                 trade_info = pd.read_csv(data_path)[-100:]
                 trade_info['trade_date'] = pd.to_datetime(trade_info['trade_date'], format='%Y%m%d').apply(
                     lambda x: x.strftime('%Y-%m-%d'))
-                csv_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(downnotbuy_flag) + '\\' + str(conditionrsi) + str(stoploss) + '\\' + contents + '.csv'
+                csv_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(
+                    downnotbuy_flag) + '\\' + str(conditionrsi) + str(stoploss) + '\\' + contents + '.csv'
                 details = pd.read_csv(csv_path).iloc[-60:]
                 details = details[details['trade_type'] != 0]
                 date_list = details['date'].values.tolist()
                 buysell_list = details['trade_type'].values.tolist()
                 trans_list = []
                 trade_info = trade_info.set_index('trade_date')
-                url = os.getcwd() + os.path.sep + 'customer' + '\\' + 'generate_html' + '\\' + contents.replace('.','') + '.html'
-                set_kline_data(contents, details, trade_info,url)
+                url = os.getcwd() + os.path.sep + 'customer' + '\\' + 'generate_html' + '\\' + contents.replace('.',
+                                                                                                                '') + '.html'
+                set_kline_data(contents, details, trade_info, url)
                 for type in buysell_list:
                     if type == 1:
                         trans_list.append('买')

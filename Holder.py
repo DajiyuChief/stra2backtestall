@@ -12,7 +12,10 @@ import pandas as pd
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QMainWindow, QHeaderView, QTableWidgetItem, QItemDelegate
+
+from MessageBox import MessageBox
 from gol_all import set_value, get_value
 from baseFun import get_name,get_stock_code
 
@@ -96,6 +99,9 @@ class Ui_Holder(object):
         self.retranslateUi(Holder)
         QtCore.QMetaObject.connectSlotsByName(Holder)
         self.holderlist.setAlternatingRowColors(True)
+        self.holderlist.horizontalHeader().setSectionsClickable(True)
+        self.holderlist.horizontalHeader().setSortIndicatorShown(True)
+        self.orderType = Qt.AscendingOrder
 
         # self.holderlist.setItemDelegateForColumn(0, EmptyDelegate(self))  # 设置第一列不可编辑
 
@@ -106,12 +112,11 @@ class Ui_Holder(object):
         self.savebutton.clicked.connect(self.save)
         self.holderlist.cellChanged.connect(self.check)
         self.deletebutton.clicked.connect(self.delete)
+        self.holderlist.horizontalHeader().sectionClicked.connect(self.sort_by_column)
         # self.holderlist.currentCellChanged.connect((self.check))
 
-        # 设置全局变量 方便增删改查
         self.path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'holdlist.csv'
-        df = pd.read_csv(self.path)
-        set_value('df_holdlist', df)
+
 
     def retranslateUi(self, Holder):
         _translate = QtCore.QCoreApplication.translate
@@ -146,7 +151,11 @@ class Ui_Holder(object):
     def refresh(self):
         try:
             self.holderlist.blockSignals(True)
-            df = pd.DataFrame(get_value('df_holdlist'))
+            # 设置全局变量 方便增删改查
+            path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'holdlist.csv'
+            df = pd.read_csv(path)
+            set_value('df_holdlist', df)
+            # df = pd.DataFrame(get_value('df_holdlist'))
             if df.empty:
                 return
             values_list = df.values.tolist()
@@ -182,6 +191,7 @@ class Ui_Holder(object):
             traceback.print_exc()
 
     def save(self):
+        path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'holdlist.csv'
         try:
             df = pd.DataFrame(get_value('df_holdlist'))
             row_count = self.holderlist.rowCount()
@@ -198,7 +208,7 @@ class Ui_Holder(object):
                 df.loc[row] = row_content
                 content.append(row_content)
             set_value('df_holdlist',df)
-            df.to_csv(self.path,index=False)
+            df.to_csv(path,index=False)
             self.refresh()
         except Exception as e:
             traceback.print_exc()
@@ -232,6 +242,8 @@ class Ui_Holder(object):
 
     # 检测是否插入新的行
     def check(self):
+        df = pd.DataFrame(get_value('df_holdlist'))
+        code_list = df['code'].values.tolist()
         try:
             current_row = self.holderlist.currentRow()
             current_col = self.holderlist.currentColumn()
@@ -239,29 +251,60 @@ class Ui_Holder(object):
                 code = self.holderlist.currentItem().text()
                 if "." not in code:
                     code = get_stock_code(code)
-                name = get_name(code)
-                self.holderlist.blockSignals(True)
-                self.holderlist.setItem(current_row,0,QTableWidgetItem(str(code)))
-                self.holderlist.setItem(current_row, 1, QTableWidgetItem(str(name)))
-                self.holderlist.blockSignals(False)
+                if code in code_list:
+                    message = MessageBox()
+                    message.show_message(str(code) + '已存在')
+                    self.holderlist.removeRow(current_row)
+                    self.add_stock()
+                else:
+                    name = get_name(code)
+                    self.holderlist.blockSignals(True)
+                    self.holderlist.setItem(current_row,0,QTableWidgetItem(str(code)))
+                    self.holderlist.setItem(current_row, 1, QTableWidgetItem(str(name)))
+                    self.holderlist.blockSignals(False)
         except Exception as e:
             traceback.print_exc()
 
     def delete(self):
+        path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'holdlist.csv'
         try:
             df = pd.DataFrame(get_value('df_holdlist'))
             # current_row = self.holderlist.currentRow()
             current_row_list = []
+            code_list = []
             for i in range(len(self.holderlist.selectedItems())):
                 row = self.holderlist.selectedItems()[i].row()
                 current_row_list.append(row)
+                code_list.append(self.holderlist.item(row,0).text())
+                # print(current_row_list,code_list)
+                # print(self.holderlist.item(row,0).text())
+                # print(self.holderlist.selectedItems()[i].text())
             for row in current_row_list[::-1]:
                 self.holderlist.removeRow(row)
-            df = df.drop(labels=current_row_list,axis=0)
+                # df[df['code'] == ]
+            for code in code_list:
+                df_index = df[df['code'] == code].index.values
+                df = df.drop(labels=df_index,axis=0)
+                # print(df_index)
+            # df = df.drop(labels=current_row_list,axis=0)
             set_value('df_holdlist',df)
-            self.refresh()
+            df.to_csv(path, index=False)
+            # self.refresh()
         except Exception as e:
             traceback.print_exc()
+
+    def sort_by_column(self, index):
+        try:
+            if self.orderType == Qt.DescendingOrder:
+                self.orderType = Qt.AscendingOrder
+            else:
+                self.orderType = Qt.DescendingOrder
+            self.holderlist.sortItems(index, self.orderType)
+        except Exception as e:
+            traceback.print_exc()
+            message = MessageBox()
+            message.show_message(str(e))
+            print(e)
 
 
 class HolderUI(QMainWindow, Ui_Holder):

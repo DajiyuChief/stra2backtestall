@@ -17,6 +17,7 @@ import pandas as pd
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtGui import QBrush, QColor
 from PyQt5.QtWidgets import QAbstractItemView, QHeaderView, QMainWindow, qApp, QStyleOptionButton, QStyle
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtCore import QUrl, Qt, pyqtSignal, QRect
@@ -218,16 +219,17 @@ class Ui_MainWindow(object):
             df = pd.concat([pull_stock_name(), pull_fun_name()], ignore_index=True)
             df['symbol'] = df['ts_code'].apply(lambda x: x[0:6])
             df.to_csv('name.csv')
-            code_list = sorted(list(
-                set(df['ts_code'].values.tolist()) - set(
-                    load_finished_code(conditionrsi, stoploss, downnotbuy_flag, customer_flag))))
+            # code_list = sorted(list(
+            #     set(df['ts_code'].values.tolist()) - set(
+            #         load_finished_code(conditionrsi, stoploss, downnotbuy_flag, customer_flag))))
+            code_list = df['ts_code'].values.tolist()
             splited_list = split_list_n_list(code_list, num)
             for item in splited_list:
                 process = multiprocessing.Process(target=run, args=(
                     item, conditionrsi, stoploss,  downnotbuy_flag, principal,percent, customer_flag))
                 processlist.append(process)
                 process.start()
-            thread1 = threading.Thread(target=check_process_running, args=(processlist, self,))
+            thread1 = threading.Thread(target=check_process_running, args=(processlist, self,conditionrsi,stoploss,customer_flag,downnotbuy_flag,))
             thread1.start()
         except Exception as e:
             traceback.print_exc()
@@ -252,6 +254,7 @@ class Ui_MainWindow(object):
             for finished_code in finished_list:
                 self.finishedlist.addItem(finished_code)
             while row < len(satisfied_code_win_name):
+                trade_type = satisfied_code_win_name[row][6]
                 win = QTableWidgetItem()
                 upper = QTableWidgetItem()
                 diff = QTableWidgetItem()
@@ -265,6 +268,10 @@ class Ui_MainWindow(object):
                 self.satisfaciedlist.setItem(row, 3, win)
                 self.satisfaciedlist.setItem(row, 4, upper)
                 self.satisfaciedlist.setItem(row, 5, diff)
+                if trade_type > 0:
+                    self.satisfaciedlist.item(row, 0).setBackground(QBrush(QColor(181, 61, 61)))
+                elif trade_type < 0:
+                    self.satisfaciedlist.item(row, 0).setBackground(QBrush(QColor(74, 194, 194)))
                 row = row + 1
             self.satisfaciedlist.sortItems(0, Qt.AscendingOrder)
         except Exception as e:
@@ -438,37 +445,42 @@ class Ui_MainWindow(object):
             message.show_message(str(e))
 
     def today_buy(self):
-        row = 0
-        # startday = self.startday.text()
-        # endday = self.endday.text()
-        conditionrsi = float(self.conditionrsi.text())
-        stoploss = float(self.stoploss.text())
-        percent = float(self.winningpercent.text())
-        downnotbuy_flag = self.downnotbuy.isChecked()
-        customer_flag = False
-        try:
-            satisfied_code_win_name = load_today_buy(conditionrsi, stoploss,downnotbuy_flag)
-            self.satisfaciedlist.setRowCount(len(satisfied_code_win_name))
-            while row < len(satisfied_code_win_name):
-                win = QTableWidgetItem()
-                upper = QTableWidgetItem()
-                diff = QTableWidgetItem()
-                win.setData(QtCore.Qt.DisplayRole, satisfied_code_win_name[row][3])
-                upper.setData(QtCore.Qt.DisplayRole, satisfied_code_win_name[row][4])
-                diff.setData(QtCore.Qt.DisplayRole, satisfied_code_win_name[row][5])
-                self.satisfaciedlist.setItem(row, 0, QTableWidgetItem(satisfied_code_win_name[row][0]))
-                self.satisfaciedlist.setItem(row, 1, QTableWidgetItem(str(satisfied_code_win_name[row][1])))
-                self.satisfaciedlist.setItem(row, 2, QTableWidgetItem(satisfied_code_win_name[row][2]))
-                # self.satisfaciedlist.setItem(row, 3, QTableWidgetItem(str(satisfied_code_win_name[row][3])))
-                self.satisfaciedlist.setItem(row, 3, win)
-                self.satisfaciedlist.setItem(row, 4, upper)
-                self.satisfaciedlist.setItem(row, 5, diff)
-                row = row + 1
-            self.satisfaciedlist.sortItems(0, Qt.AscendingOrder)
-        except Exception as e:
-            traceback.print_exc()
-            message = MessageBox()
-            message.show_message(str(e))
+        todaybuy_falg = self.todaybuy.isChecked()
+        if not todaybuy_falg:
+            self.refresh_list()
+        else:
+            row = 0
+            # startday = self.startday.text()
+            # endday = self.endday.text()
+            conditionrsi = float(self.conditionrsi.text())
+            stoploss = float(self.stoploss.text())
+            percent = float(self.winningpercent.text())
+            downnotbuy_flag = self.downnotbuy.isChecked()
+            customer_flag = False
+            try:
+                satisfied_code_win_name = load_today_buy(conditionrsi, stoploss,downnotbuy_flag)
+                self.satisfaciedlist.setRowCount(len(satisfied_code_win_name))
+                while row < len(satisfied_code_win_name):
+                    win = QTableWidgetItem()
+                    upper = QTableWidgetItem()
+                    diff = QTableWidgetItem()
+                    win.setData(QtCore.Qt.DisplayRole, satisfied_code_win_name[row][3])
+                    upper.setData(QtCore.Qt.DisplayRole, satisfied_code_win_name[row][4])
+                    diff.setData(QtCore.Qt.DisplayRole, satisfied_code_win_name[row][5])
+                    self.satisfaciedlist.setItem(row, 0, QTableWidgetItem(satisfied_code_win_name[row][0]))
+                    self.satisfaciedlist.setItem(row, 1, QTableWidgetItem(str(satisfied_code_win_name[row][1])))
+                    self.satisfaciedlist.setItem(row, 2, QTableWidgetItem(satisfied_code_win_name[row][2]))
+                    # self.satisfaciedlist.setItem(row, 3, QTableWidgetItem(str(satisfied_code_win_name[row][3])))
+                    self.satisfaciedlist.setItem(row, 3, win)
+                    self.satisfaciedlist.setItem(row, 4, upper)
+                    self.satisfaciedlist.setItem(row, 5, diff)
+                    self.satisfaciedlist.item(row, 0).setBackground(QBrush(QColor(181, 61, 61)))
+                    row = row + 1
+                self.satisfaciedlist.sortItems(0, Qt.AscendingOrder)
+            except Exception as e:
+                traceback.print_exc()
+                message = MessageBox()
+                message.show_message(str(e))
 
 class Backall_resize(QMainWindow, Ui_MainWindow):
     def __init__(self):

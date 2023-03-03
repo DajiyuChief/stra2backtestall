@@ -216,10 +216,9 @@ def create_all_dir():
     dir_path1 = os.getcwd() + os.path.sep + 'multi' + '\\' + 'multi' + str(False)
     # dir_path2 = os.getcwd() + os.path.sep + 'customer' + str(False)
     # dir_path3 = os.getcwd() + os.path.sep + 'customer' + str(True)
-    dir_path4 = os.getcwd() + os.path.sep + 'multi' + '\\' + 'saved_data'
     dir_path5 = os.getcwd() + os.path.sep + 'multi' + '\\' + 'generate_html'
     # dir_path6 = os.getcwd() + os.path.sep + 'customer'
-    dir_path_list = [dir_path, dir_path1, dir_path4, dir_path5]
+    dir_path_list = [dir_path, dir_path1, dir_path5]
     for path in dir_path_list:
         mkdir(path)
     return dir_path_list
@@ -228,9 +227,8 @@ def create_all_dir():
 def create_customer_dir():
     dir_path2 = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(False)
     dir_path3 = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(True)
-    dir_path4 = os.getcwd() + os.path.sep + 'customer' + '\\' + 'saved_data'
     dir_path5 = os.getcwd() + os.path.sep + 'customer' + '\\' + 'generate_html'
-    dir_path_list = [dir_path2, dir_path3, dir_path4, dir_path5]
+    dir_path_list = [dir_path2, dir_path3, dir_path5]
     for path in dir_path_list:
         mkdir(path)
     return dir_path_list
@@ -294,7 +292,16 @@ def connect_database(address, port, user, password):
     # cursor.execute("show databases")
 
 
-def check_process_running(process_list, window):
+def check_process_running(process_list, window,rsi,stoploss,iscustomer,downnotbuy):
+    if not iscustomer:
+        dirpath = os.getcwd() + os.path.sep + 'multi' + '\\' + 'multi' + str(downnotbuy) + '\\' + str(rsi) + str(
+            stoploss) + '\\'
+        finishlist_path = dirpath + 'finishedlist.csv'
+    else:
+        dirpath = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(downnotbuy) + '\\' + str(
+            rsi) + str(
+            stoploss) + '\\'
+        finishlist_path = dirpath + 'finishedlist.csv'
     while True:
         is_alive_flag = []
         for item in process_list:
@@ -303,6 +310,8 @@ def check_process_running(process_list, window):
             window.refresh_list()
             time.sleep(2)
         else:
+            finishlist_csv = pd.read_csv(finishlist_path).drop_duplicates(subset='code', keep='last')
+            finishlist_csv.to_csv(finishlist_path, index=False)
             window.refresh_list()
             break
 
@@ -339,7 +348,7 @@ def different_priority_stock():
         today_close = df['close'].values.tolist()[-1]
         if (today_close > 2 * min_price) or (today_close > 0.8 * max_price):
             priority = 1
-        print(max_price, min_price, today_close, priority)
+        print(code,max_price, min_price, today_close, priority)
         with open('priority.csv', 'a', encoding='UTF8', newline='') as f:
             writer = csv.writer(f)
             writer.writerow([code, priority])
