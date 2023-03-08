@@ -8,7 +8,7 @@ a = Analysis(
     ['Strategy2.py','back.py','backtest_all.py','baseFun.py','buyandsellui.py','customer.py','gol_all.py','Holder.py','kline.py','load_csvdata.py','Main.py','MessageBox.py','setting.py'],
     pathex=[],
     binaries=[],
-    datas=[('E:\stock\stra2backtestall','stra2backtestall')],
+    datas=[],
     hiddenimports=['talib.stream'],
     hookspath=[],
     hooksconfig={},

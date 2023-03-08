@@ -17,7 +17,7 @@ from PyQt5.QtWidgets import QMainWindow, QHeaderView, QTableWidgetItem, QItemDel
 
 from MessageBox import MessageBox
 from gol_all import set_value, get_value
-from baseFun import get_name,get_stock_code
+from baseFun import get_name, get_stock_code, hold_stock,create_holdstock_csv
 
 
 class Ui_Holder(object):
@@ -68,28 +68,43 @@ class Ui_Holder(object):
         sizePolicy.setHeightForWidth(self.groupBox.sizePolicy().hasHeightForWidth())
         self.groupBox.setSizePolicy(sizePolicy)
         self.groupBox.setMinimumSize(QtCore.QSize(100, 0))
-        self.groupBox.setMaximumSize(QtCore.QSize(150, 300))
+        self.groupBox.setMaximumSize(QtCore.QSize(150, 400))
         self.groupBox.setObjectName("groupBox")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.groupBox)
         self.verticalLayout.setObjectName("verticalLayout")
-        self.realtestbutton = QtWidgets.QPushButton(self.groupBox)
-        self.realtestbutton.setObjectName("realtestbutton")
-        self.verticalLayout.addWidget(self.realtestbutton)
+
+        self.codeinput = QtWidgets.QLineEdit(self.groupBox)
+        self.codeinput.setMaximumSize(QtCore.QSize(16777215, 35))
+        self.codeinput.setObjectName("codeinput")
+        self.verticalLayout.addWidget(self.codeinput)
         self.addbutton = QtWidgets.QPushButton(self.groupBox)
         self.addbutton.setObjectName("addbutton")
         self.verticalLayout.addWidget(self.addbutton)
-        self.savebutton = QtWidgets.QPushButton(self.groupBox)
-        self.savebutton.setObjectName("savebutton")
-        self.verticalLayout.addWidget(self.savebutton)
-        self.refreshbutton = QtWidgets.QPushButton(self.groupBox)
-        self.refreshbutton.setObjectName("refreshbutton")
-        self.verticalLayout.addWidget(self.refreshbutton)
+
         self.deletebutton = QtWidgets.QPushButton(self.groupBox)
         self.deletebutton.setObjectName("deletebutton")
         self.verticalLayout.addWidget(self.deletebutton)
+
+        self.savebutton = QtWidgets.QPushButton(self.groupBox)
+        self.savebutton.setObjectName("savebutton")
+        self.verticalLayout.addWidget(self.savebutton)
+
+        self.refreshbutton = QtWidgets.QPushButton(self.groupBox)
+        self.refreshbutton.setObjectName("refreshbutton")
+        self.verticalLayout.addWidget(self.refreshbutton)
+
+        self.buybutton = QtWidgets.QPushButton(self.groupBox)
+        self.buybutton.setObjectName("buybutton")
+        self.verticalLayout.addWidget(self.buybutton)
+
         self.sellbutton = QtWidgets.QPushButton(self.groupBox)
         self.sellbutton.setObjectName("sellbutton")
         self.verticalLayout.addWidget(self.sellbutton)
+
+        self.realtestbutton = QtWidgets.QPushButton(self.groupBox)
+        self.realtestbutton.setObjectName("realtestbutton")
+        self.verticalLayout.addWidget(self.realtestbutton)
+
         self.gridLayout.addWidget(self.groupBox, 0, 0, 1, 1)
         Holder.setCentralWidget(self.centralwidget)
         self.statusbar = QtWidgets.QStatusBar(Holder)
@@ -106,17 +121,22 @@ class Ui_Holder(object):
         # self.holderlist.setItemDelegateForColumn(0, EmptyDelegate(self))  # 设置第一列不可编辑
 
         self.holderlist.setItemDelegateForColumn(1, EmptyDelegate(self))  # 设置第二列不可编辑
+        self.holderlist.setItemDelegateForColumn(6, EmptyDelegate(self))  # 设置第7列不可编辑
+        self.holderlist.setItemDelegateForColumn(7, EmptyDelegate(self))  # 设置第8列不可编辑
+        self.holderlist.setItemDelegateForColumn(8, EmptyDelegate(self))  # 设置第9列不可编辑
 
         self.refreshbutton.clicked.connect(self.refresh)
         self.addbutton.clicked.connect(self.add_stock)
         self.savebutton.clicked.connect(self.save)
         self.holderlist.cellChanged.connect(self.check)
+        # self.holderlist.currentCellChanged.connect(self.cellchange)
         self.deletebutton.clicked.connect(self.delete)
         self.holderlist.horizontalHeader().sectionClicked.connect(self.sort_by_column)
+        self.buybutton.clicked.connect(self.buy)
         # self.holderlist.currentCellChanged.connect((self.check))
 
         self.path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'holdlist.csv'
-
+        self.message = MessageBox()
 
     def retranslateUi(self, Holder):
         _translate = QtCore.QCoreApplication.translate
@@ -147,6 +167,7 @@ class Ui_Holder(object):
         self.refreshbutton.setText(_translate("Holder", "刷新"))
         self.deletebutton.setText(_translate("Holder", "删除"))
         self.sellbutton.setText(_translate("Holder", "卖出"))
+        self.buybutton.setText(_translate("Holder", "买入"))
 
     def refresh(self):
         try:
@@ -164,12 +185,14 @@ class Ui_Holder(object):
                 code_text = QTableWidgetItem(QTableWidgetItem(values_list[row][0]))
                 code = QtWidgets.QTableWidgetItem(code_text)
                 code.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+                first_buy_date = QTableWidgetItem()
                 first_buy_price = QTableWidgetItem()
                 current_cost_price = QTableWidgetItem()
                 number_of_stock = QTableWidgetItem()
                 current_market_value = QTableWidgetItem()
                 win_percent = QTableWidgetItem()
                 upper_percent = QTableWidgetItem()
+                first_buy_date.setData(QtCore.Qt.DisplayRole, values_list[row][2])
                 first_buy_price.setData(QtCore.Qt.DisplayRole, values_list[row][3])
                 current_cost_price.setData(QtCore.Qt.DisplayRole, values_list[row][4])
                 number_of_stock.setData(QtCore.Qt.DisplayRole, values_list[row][5])
@@ -179,15 +202,67 @@ class Ui_Holder(object):
                 # self.holderlist.setItem(row, 0, QTableWidgetItem(values_list[row][0]))
                 self.holderlist.setItem(row, 0, code)
                 self.holderlist.setItem(row, 1, QTableWidgetItem(values_list[row][1]))
+                self.holderlist.setItem(row, 2, QTableWidgetItem(values_list[row][2]))
+                self.holderlist.setItem(row, 3, QTableWidgetItem(str(values_list[row][3])))
+                self.holderlist.setItem(row, 4, QTableWidgetItem(str(values_list[row][4])))
+                self.holderlist.setItem(row, 5, QTableWidgetItem(str(values_list[row][5])))
+                self.holderlist.setItem(row, 6, current_market_value)
+                self.holderlist.setItem(row, 7, win_percent)
+                self.holderlist.setItem(row, 8, upper_percent)
+
             self.holderlist.blockSignals(False)
         except Exception as e:
+            self.message.show_message(str(e))
             print(e)
 
     def add_stock(self):
+        code = self.codeinput.text()
+        print(code)
         try:
             rowPosition = self.holderlist.rowCount()
             self.holderlist.insertRow(rowPosition)
+            df = pd.DataFrame(get_value('df_holdlist'))
+            code_list = df['code'].values.tolist()
+            all_code = pd.read_csv('name.csv')['ts_code'].values.tolist()
+            try:
+                # current_row = self.holderlist.currentRow()
+                # current_col = self.holderlist.currentColumn()
+                # if current_col == 0:
+                # code = self.holderlist.currentItem().text()
+                if "." not in code:
+                    code = get_stock_code(code)
+                if code in code_list:
+                    message = MessageBox()
+                    message.show_message(str(code) + '已存在')
+                    self.holderlist.removeRow(rowPosition)
+                    # self.add_stock()
+                elif code not in all_code:
+                    message = MessageBox()
+                    message.show_message('该股票可能不存在存在')
+                    self.holderlist.removeRow(rowPosition)
+                else:
+                    name = get_name(code)
+                    price_date = hold_stock(code)
+                    price = price_date[0]
+                    trade_date = price_date[1]
+                    create_holdstock_csv(code)
+                    self.holderlist.blockSignals(True)
+                    self.holderlist.setItem(rowPosition, 0, QTableWidgetItem(str(code)))
+                    self.holderlist.setItem(rowPosition, 1, QTableWidgetItem(str(name)))
+                    self.holderlist.setItem(rowPosition, 2, QTableWidgetItem(str(trade_date)))
+                    self.holderlist.setItem(rowPosition, 3, QTableWidgetItem(str(price)))
+                    self.holderlist.setItem(rowPosition, 4, QTableWidgetItem(str(0)))
+                    self.holderlist.setItem(rowPosition, 5, QTableWidgetItem(str(0)))
+                    self.holderlist.setItem(rowPosition, 6, QTableWidgetItem(str(0)))
+                    self.holderlist.setItem(rowPosition, 7, QTableWidgetItem(str(0)))
+                    self.holderlist.setItem(rowPosition, 8, QTableWidgetItem(str(0)))
+                    self.holderlist.blockSignals(False)
+                    self.save()
+
+            except Exception as e:
+                traceback.print_exc()
         except Exception as e:
+            # self.message.show_message(str(e))
             traceback.print_exc()
 
     def save(self):
@@ -207,8 +282,8 @@ class Ui_Holder(object):
                         row_content.append(item)
                 df.loc[row] = row_content
                 content.append(row_content)
-            set_value('df_holdlist',df)
-            df.to_csv(path,index=False)
+            set_value('df_holdlist', df)
+            df.to_csv(path, index=False)
             self.refresh()
         except Exception as e:
             traceback.print_exc()
@@ -236,33 +311,27 @@ class Ui_Holder(object):
         self.holderlist.setItem(row_count, 0, item2)
         self.holderlist.blockSignals(False)
 
-
     def code_col_click(self):
         row_count = self.holderlist.rowCount()
 
     # 检测是否插入新的行
-    def check(self):
+    def check(self,row,col):
         df = pd.DataFrame(get_value('df_holdlist'))
         code_list = df['code'].values.tolist()
         try:
             current_row = self.holderlist.currentRow()
             current_col = self.holderlist.currentColumn()
-            if current_col == 0:
-                code = self.holderlist.currentItem().text()
-                if "." not in code:
-                    code = get_stock_code(code)
-                if code in code_list:
-                    message = MessageBox()
-                    message.show_message(str(code) + '已存在')
-                    self.holderlist.removeRow(current_row)
-                    self.add_stock()
-                else:
-                    name = get_name(code)
-                    self.holderlist.blockSignals(True)
-                    self.holderlist.setItem(current_row,0,QTableWidgetItem(str(code)))
-                    self.holderlist.setItem(current_row, 1, QTableWidgetItem(str(name)))
-                    self.holderlist.blockSignals(False)
+            if col == 5:
+                number = self.holderlist.item(current_row,5).text()
+                code = self.holderlist.item(current_row,0).text()
+                price_date = hold_stock(code)
+                current_maket_price = price_date[0] * int(number)
+                self.holderlist.blockSignals(True)
+                self.holderlist.setItem(current_row,6,QTableWidgetItem(str(current_maket_price)))
+                self.holderlist.blockSignals(False)
+                self.save()
         except Exception as e:
+            self.message.show_message(str(e))
             traceback.print_exc()
 
     def delete(self):
@@ -275,7 +344,7 @@ class Ui_Holder(object):
             for i in range(len(self.holderlist.selectedItems())):
                 row = self.holderlist.selectedItems()[i].row()
                 current_row_list.append(row)
-                code_list.append(self.holderlist.item(row,0).text())
+                code_list.append(self.holderlist.item(row, 0).text())
                 # print(current_row_list,code_list)
                 # print(self.holderlist.item(row,0).text())
                 # print(self.holderlist.selectedItems()[i].text())
@@ -284,10 +353,10 @@ class Ui_Holder(object):
                 # df[df['code'] == ]
             for code in code_list:
                 df_index = df[df['code'] == code].index.values
-                df = df.drop(labels=df_index,axis=0)
+                df = df.drop(labels=df_index, axis=0)
                 # print(df_index)
             # df = df.drop(labels=current_row_list,axis=0)
-            set_value('df_holdlist',df)
+            set_value('df_holdlist', df)
             df.to_csv(path, index=False)
             # self.refresh()
         except Exception as e:
@@ -300,6 +369,41 @@ class Ui_Holder(object):
             else:
                 self.orderType = Qt.DescendingOrder
             self.holderlist.sortItems(index, self.orderType)
+        except Exception as e:
+            traceback.print_exc()
+            message = MessageBox()
+            message.show_message(str(e))
+            print(e)
+
+    def cellchange(self):
+        print(11)
+
+    def buy(self):
+        try:
+            df = pd.DataFrame(get_value('df_holdlist'))
+            add_number = self.codeinput.text()
+            if add_number == '':
+                add_number = 0
+            else:
+                add_number = int(add_number)
+            if add_number != 0:
+                row = self.holderlist.currentRow()
+                code = self.holderlist.item(row, 0).text()
+                number = int(df[df['code'] == code].number_of_stock.values[0])
+                after_add = number+add_number
+                if add_number > 0:
+                    trade_type = 1
+                elif add_number < 0:
+                    trade_type = -1
+
+                if after_add < 0:
+                    self.message.show_message('超出数量限制')
+                else:
+                    self.holderlist.setItem(row, 5, QTableWidgetItem(str(after_add)))
+                    set_value('df_holdlist', df)
+                    self.save()
+
+            # print(code,add_number,number)
         except Exception as e:
             traceback.print_exc()
             message = MessageBox()

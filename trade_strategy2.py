@@ -26,7 +26,7 @@ from datetime import date, datetime, timedelta
 from chinese_calendar import is_holiday
 import csv
 
-from baseFun import find_real_start_end, get_path, write_to_csv, mkdir, create_finished_list,get_name
+from baseFun import find_real_start_end, get_path, write_to_csv, mkdir, create_finished_list, get_name
 
 pro = ts.pro_api('f558cbc6b24ed78c2104e209a8a8986b33ec66b7c55bcfa2f46bc108')
 quotation = easyquotation.use('sina')  # 新浪 ['sina'] 腾讯 ['tencent', 'qq']
@@ -368,9 +368,9 @@ def touch_middle(date):
     """
     close = get_price(date, 'close')
     midboll = getBoll(date)[1]
-    if close <= midboll:
-        return 1
     if close > midboll:
+        return 1
+    if close <= midboll:
         return -1
     return 0
 
@@ -511,7 +511,8 @@ def high_to_low(pre_middle_date, date):
     today_low = get_price(date, 'low')
     pre_mid = touch_middle(pre_middle_date)
     today_mid = touch_middle(date)
-    if low_open(date) or (both_sp(date) == -1):
+    # if low_open(date) or (both_sp(date) == -1):
+    if (both_sp(date) == -1):  # 取消低开条件
         return True
     if (pre_mid == 1) and (pre_mid != today_mid) and (pre_low > today_low):
         return True
@@ -529,11 +530,13 @@ def low_to_high(pre_middle_date, date):
     today_high = get_price(date, 'high')
     pre_mid = touch_middle(pre_middle_date)
     today_mid = touch_middle(date)
-    if high_open(date) or (both_sp(date) == 1):
+    # if high_open(date) or (both_sp(date) == 1):
+    if (both_sp(date) == 1):  # 取消高开条件
         return True
     if (pre_mid == -1) and (pre_mid != today_mid) and (pre_high < today_high):
         return True
     return False
+
 
 def settoday():
     """
@@ -558,9 +561,10 @@ def settoday():
     else:
         return today
 
+
 def first_mid(date):
     """
-
+    检测第一次中线
     :param date:
     :return:
     """
@@ -633,7 +637,7 @@ def rest_days_common_sell_boll(date, percent):
 
 def rest_days_mid(date):
     """
-
+    中线情况
     :param date:
     :return:
     """
@@ -648,10 +652,14 @@ def rest_days_mid(date):
         high_open_flag = high_open(date)
         low_open_flag = low_open(date)
         both_sp_flag = both_sp(date)
-        if low_open_flag or (both_sp_flag == -1) or (first_mid_flag == -1):
+        # if low_open_flag or (both_sp_flag == -1) or (first_mid_flag == -1):
+        # 取消低开条件
+        if (both_sp_flag == -1) or (first_mid_flag == -1):
             mid_step = -1
             pre_middle_date = date
-        elif high_open_flag or (both_sp_flag == 1) or (first_mid_flag == 1):
+        # elif high_open_flag or (both_sp_flag == 1) or (first_mid_flag == 1):
+        # 取消高开条件
+        elif (both_sp_flag == 1) or (first_mid_flag == 1):
             mid_step = 1
             pre_middle_date = date
     else:
@@ -794,12 +802,19 @@ def first_day_insert(code, date, percnet, downnotbuy, principal):
         pre_middle_date = date
     if can_buy:
         if isdown:
-            delay_buy = True
+            pass
         else:
             trade_type = 1
             now_buy_sell = -1
             stock_num = principal // close
             principal = principal - stock_num * close
+        # if isdown:
+        #     delay_buy = True
+        # else:
+        #     trade_type = 1
+        #     now_buy_sell = -1
+        #     stock_num = principal // close
+        #     principal = principal - stock_num * close
 
     flag = [code, date, close, high, low, max_price, rsi, rsi_var, trade_type, now_buy_sell, pre_middle_date, mid_step,
             common_buy_boll_days, common_sell_boll_days, sp_boll_days, principal, stock_num, add_flag, add_principal,
@@ -846,21 +861,23 @@ def rest_days_insert(code, date, percent, stoploss, downnotbuy, principal):
     pre_middle_date = rest_days_mid(date)[1]
 
     if now_buy_sell == 1:
-        if delay_buy and not (
-                (close < (1 - stoploss) * max_price) or stop_win(date) or can_common_boll_sell or (
-                sp_boll_flag == -1)) and not isdown:
-            max_price = close
-            trade_type = 1
-            now_buy_sell = -1
-            stock_num = principal // close
-            principal = principal - stock_num * close
-            delay_buy = False
-            print(date, '买入')
+        # 取消延迟买
+        # if delay_buy and not (
+        #         (close < (1 - stoploss) * max_price) or stop_win(date) or can_common_boll_sell or (
+        #         sp_boll_flag == -1)) and not isdown:
+        #     max_price = close
+        #     trade_type = 1
+        #     now_buy_sell = -1
+        #     stock_num = principal // close
+        #     principal = principal - stock_num * close
+        #     delay_buy = False
+        #     print(date, '买入')
         if can_common_boll_buy or (mid_step > 0) or (sp_boll_flag == 1):
             can_buy = True
         if can_buy:
             if isdown:
-                delay_buy = True
+                pass
+                # delay_buy = True
             else:
                 max_price = close
                 trade_type = 1
@@ -868,7 +885,7 @@ def rest_days_insert(code, date, percent, stoploss, downnotbuy, principal):
                 stock_num = principal // close
                 principal = principal - stock_num * close
                 delay_buy = False
-                print(date, '买入')
+                print(date, '买入',can_common_boll_buy,(mid_step > 0),(sp_boll_flag == 1))
     elif now_buy_sell == -1:
         max_price = max(close, last_flag['max_price'].values[0])
         if (close < (1 - stoploss) * max_price) or stop_win(date) or can_common_boll_sell or (sp_boll_flag == -1):
@@ -912,7 +929,7 @@ def rest_days_insert(code, date, percent, stoploss, downnotbuy, principal):
             trade_type = -2
             principal = (stock_num // 2) * close + principal
             stock_num = stock_num // 2
-            print(date, '减仓')
+            print(date, '减仓', 1)
     flag = [code, date, close, high, low, max_price, rsi, rsi_var, trade_type, now_buy_sell, pre_middle_date, mid_step,
             common_buy_boll_days, common_sell_boll_days, sp_boll_days, principal, stock_num, add_flag, add_principal,
             delay_buy, low_rsi, win_stop]
@@ -935,7 +952,7 @@ def first_run(code, percent, stoploss, downnotbuy, principal):
     # trade_flag_list.to_csv('trade_flag.csv', index= False)
 
 
-def not_first_run(code, percent, stoploss, downnotbuy, principal,customer_flag):
+def not_first_run(code, percent, stoploss, downnotbuy, principal, customer_flag):
     global trade_flag_list
     if not customer_flag:
         path = os.getcwd() + os.path.sep + 'multi' + '\\' + 'multi' + str(downnotbuy) + '\\' + str(percent) + str(
@@ -985,10 +1002,10 @@ def run(code_list, percent, stoploss, downnotbuy, principal, winpercent, custome
             if not os.path.exists(path):
                 first_run(code, percent, stoploss, downnotbuy, principal)
             else:
-                not_first_run(code, percent, stoploss, downnotbuy, principal,customer_flag)
+                not_first_run(code, percent, stoploss, downnotbuy, principal, customer_flag)
             print('正在回测' + code)
             # print(trade_flag_list)
-            trade_flag_list.to_csv(path, index=False) #保存标志文件
+            trade_flag_list.to_csv(path, index=False)  # 保存标志文件
             save_back_tocsv(code, winpercent, False)
 
             span_60_days = trade_flag_list.iloc[-61:]
@@ -1000,17 +1017,17 @@ def run(code_list, percent, stoploss, downnotbuy, principal, winpercent, custome
             end_principal = span_60_days.iloc[-1]['stock_num'] * end_price + span_60_days.iloc[-1]['principal']
             win_percent = round(((end_principal / sum_principal) - 1) * 100, 2)
             up_percent = round(((end_price / price) - 1) * 100, 2)
-            diff_percent = round(win_percent - up_percent,2)
+            diff_percent = round(win_percent - up_percent, 2)
             trade_type = span_60_days.iloc[-1]['trade_type']
             span_days = str(span_60_days.iloc[0]['date']) + '-' + str(span_60_days.iloc[-1]['date'])
             name = get_name(code)
 
-            write_to_csv(finishlist_path, [code,name,span_days,win_percent,up_percent,diff_percent,trade_type])
+            write_to_csv(finishlist_path, [code, name, span_days, win_percent, up_percent, diff_percent, trade_type])
             # finishlist_csv = pd.read_csv(finishlist_path).drop_duplicates(subset='code', keep='first')
             # print(finishlist_csv)
             # finishlist_csv.to_csv(finishlist_path, index=False)
 
-            print(win_percent,up_percent,diff_percent,span_days,trade_type)
+            # print(win_percent,up_percent,diff_percent,span_days,trade_type)
             trade_flag_list.drop(trade_flag_list.index, inplace=True)  # 清除trade_flag_list
             time.sleep(1)
         except Exception as e:
@@ -1018,78 +1035,58 @@ def run(code_list, percent, stoploss, downnotbuy, principal, winpercent, custome
             continue
 
 
-def run_customer(start, end, code_list, percent, stoploss, downnotbuy, principal, winpercent):
-    dirpath = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(downnotbuy) + '\\' + str(percent) + str(
-        stoploss) + '\\'
-    finishlist_path = dirpath + 'finishedlist.csv'
-    mkdir(dirpath)
-    create_finished_list(finishlist_path)
-    for code in code_list:
-        # path = get_path('customer' + str(downnotbuy)) + code + '.csv'
-        path = dirpath + code + '.csv'
-        # finishlist_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(
-        #     downnotbuy) + '\\' + 'finishedlist.csv'
-        try:
-            if not os.path.exists(path):
-                first_run(code, percent, stoploss, downnotbuy, principal)
-            else:
-                not_first_run(start, end, code, percent, stoploss, downnotbuy, principal)
-            print('正在回测' + code)
-            trade_flag_list.to_csv(path, index=False)
-            save_back_tocsv(code, winpercent, True)
-            write_to_csv(finishlist_path, [code])
-            finishlist_csv = pd.read_csv(finishlist_path).drop_duplicates(subset='code', keep='first')
-            finishlist_csv.to_csv(finishlist_path, index=False)
-            trade_flag_list.drop(trade_flag_list.index, inplace=True)
-            time.sleep(1)
-        except Exception as e:
-            traceback.print_exc()
-            continue
+# def run_customer(start, end, code_list, percent, stoploss, downnotbuy, principal, winpercent):
+#     dirpath = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(downnotbuy) + '\\' + str(percent) + str(
+#         stoploss) + '\\'
+#     finishlist_path = dirpath + 'finishedlist.csv'
+#     mkdir(dirpath)
+#     create_finished_list(finishlist_path)
+#     for code in code_list:
+#         # path = get_path('customer' + str(downnotbuy)) + code + '.csv'
+#         path = dirpath + code + '.csv'
+#         # finishlist_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(
+#         #     downnotbuy) + '\\' + 'finishedlist.csv'
+#         try:
+#             if not os.path.exists(path):
+#                 first_run(code, percent, stoploss, downnotbuy, principal)
+#             else:
+#                 not_first_run(start, end, code, percent, stoploss, downnotbuy, principal)
+#             print('正在回测' + code)
+#             trade_flag_list.to_csv(path, index=False)
+#             save_back_tocsv(code, winpercent, True)
+#             write_to_csv(finishlist_path, [code])
+#             finishlist_csv = pd.read_csv(finishlist_path).drop_duplicates(subset='code', keep='first')
+#             finishlist_csv.to_csv(finishlist_path, index=False)
+#             trade_flag_list.drop(trade_flag_list.index, inplace=True)
+#             time.sleep(1)
+#         except Exception as e:
+#             traceback.print_exc()
+#             continue
 
 
 def save_back_tocsv(code, winpercent, customer_flag):
+    """
+    保存数据为csv文件
+    :param code:
+    :param winpercent:
+    :param customer_flag:
+    :return:
+    """
     csvpath = os.getcwd() + os.path.sep + 'saved_data' + '\\' + str(code).replace('.', '') + '.csv'
     if not os.path.exists(csvpath):
         global_data.to_csv(csvpath)
     else:
         old_df = pd.read_csv(csvpath, dtype={'trade_date': str}, index_col=0)
-        # print(old_df)
-        # new_gol = global_data.reset_index(drop=True)
-        # print(new_gol)
-        new_df = pd.concat([old_df, global_data.drop(labels=0)], ignore_index=True)
-        # new_df = old_df.append(global_data).drop_duplicates(subset='trade_date',keep='last',inplace=False,ignore_index=True)
+        new_gol = global_data.reset_index(drop=True)
+        new_df = pd.concat([old_df, new_gol.drop(labels=0)], ignore_index=True)
         new_df = new_df.drop_duplicates(subset='trade_date', keep='last', ignore_index=True)
         new_df = new_df.sort_values(by='trade_date', ascending=True, ignore_index=True)
-        # print(global_data)
-        # new_df = new_df.drop_duplicates(keep='first',ignore_index=True)
         new_df.to_csv(csvpath)
-    # start_principal = sum(trade_flag_list['add_principal'].values.tolist())
-    # end_principal = trade_flag_list.tail(1)['stock_num'].values[0] * trade_flag_list.tail(1)['close'].values[0] + \
-    #                 trade_flag_list.tail(1)['principal'].values[0]
-    # is_last_day_buy = False
-    # if 0 < trade_flag_list.tail(1)['trade_type'].values[0] < 3:
-    #     is_last_day_buy = True
-    # # print(start_principal, end_principal)
-    # if not customer_flag:
-    #     csvpath = os.getcwd() + os.path.sep + 'multi' + '\\' + 'saved_data' + '\\' + str(code).replace('.', '') + '.csv'
-    #     if end_principal >= (1 + winpercent) * start_principal or is_last_day_buy:
-    #         if not os.path.exists(csvpath):
-    #             global_data.to_csv(csvpath)
-    #         else:
-    #             old_df = pd.read_csv(csvpath)
-    #             new_df = pd.concat([old_df,global_data.drop(labels=0)],ignore_index=True)
-    #             new_df.to_csv(csvpath)
-    # elif customer_flag:
-    #     csvpath = os.getcwd() + os.path.sep + 'customer' + '\\' + 'saved_data' + '\\' + str(code).replace('.', '') + '.csv'
-    #     if not os.path.exists(csvpath):
-    #         global_data.to_csv(csvpath)
-    #     else:
-    #         old_df = pd.read_csv(csvpath)
-    #         new_df = pd.concat([old_df, global_data.drop(labels=0)], ignore_index=True)
-    #         new_df.to_csv(csvpath)
+
+
 
 #
 # run(['600073.SH', '000005.SZ'], 0.1, 0.2, True, 100000, 0.1,False)
-# run(['600073.SH', '000005.SZ'], 0.1, 0.2, True, 100000, 0.1,True)
+# run(['601012.SH'], 0.1, 0.2, True, 100000, 0.1, True)
 # run_customer('20220707', '20230211', ['600073.SH', '000005.SZ'], 0.1, 0.2, True, 100000, 0.1)
 # run_customer('20220707', '20230211', ['600073.SH'], 0.1, 0.2, True, 100000, 0.1)

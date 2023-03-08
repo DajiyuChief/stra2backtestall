@@ -39,7 +39,7 @@ def load_winning_code(rsi, stoploss, percnet, downnotbuy, type):
     if not os.path.exists(csv_path):
         return []
     df = pd.read_csv(csv_path)
-    if len(df) <= 1:
+    if df.empty:
         return []
     finished_list = load_finished_code(rsi, stoploss, downnotbuy, type)
     satisfied_list = []

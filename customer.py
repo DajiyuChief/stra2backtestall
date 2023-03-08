@@ -24,7 +24,7 @@ from PyQt5.QtWidgets import QWidget, QTableWidgetItem, QAbstractItemView, QHeade
 from MessageBox import MessageBox, QuestionBox
 from backtest_all import run2_all
 from baseFun import get_stock_code, get_name, split_list_n_list, mkdir, kill_proc_tree, get_need_data, set_kline_data, \
-    create_customer_dir, find_proc_tree, check_process_running
+    create_customer_dir, find_proc_tree, check_process_running,hold_stock,create_holdstock_csv
 from buyandsellui import BuyandSell
 from gol_all import get_value, set_value
 from load_csvdata import load_finished_code, load_winning_code
@@ -245,20 +245,34 @@ class Ui_customer(object):
 
     def delete_selected(self):
         try:
+            dirpath = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(self.downnotbuy.isChecked()) + '\\' + str(
+                self.conditionrsi.text()) + str(
+                self.stoploss.text()) + '\\'
+            finishlist_path = dirpath + 'finishedlist.csv'
+
+            finish_csv = pd.read_csv(finishlist_path)
             drop_row = []
             csv_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'custmoerlist.csv'
             df = pd.read_csv(csv_path)
             for i in range(len(self.customerlist.selectedItems())):
                 row = self.customerlist.selectedItems()[i].row()  # 获取选中文本所在的行
+                code = self.customerlist.item(row,0).text()
+                data_path = dirpath + code +'.csv'
                 # column = self.customerlist.selectedItems()[i].column()  # 获取选中文本所在的列
                 # contents = self.customerlist.selectedItems()[i].text()  # 获取选中文本内容
                 drop_row.append(row)
-                # print("选择的内容为：", contents)
-                # print("所选的内容所在的行为：", row)
-                # print("所选的内容所在的列为：", column)
+                try:
+                    index_in_finish = finish_csv[finish_csv['code'] == code].index.tolist()
+                    finish_csv = finish_csv.drop(index_in_finish)
+                    if os.path.exists(data_path):
+                        os.remove(data_path)
+                except:
+                    continue
             df = df.drop(drop_row)
             df.to_csv(csv_path, index=False, encoding="utf-8")
+            finish_csv.to_csv(finishlist_path,index=False)
             self.refresh_customer_lsit()
+            self.refresh_list()
         except Exception as e:
             traceback.print_exc()
             message = MessageBox()
@@ -323,9 +337,9 @@ class Ui_customer(object):
                 self.outputtable.setItem(row, 3, win)
                 self.outputtable.setItem(row, 4, upper)
                 self.outputtable.setItem(row, 5, diff)
-                if trade_type > 0:
+                if 0 < trade_type < 3:
                     self.outputtable.item(row, 0).setBackground(QBrush(QColor(181, 61, 61)))
-                elif trade_type < 0:
+                elif trade_type < 0 or trade_type == 3:
                     self.outputtable.item(row, 0).setBackground(QBrush(QColor(74, 194, 194)))
                 row = row + 1
         except Exception as e:
@@ -430,11 +444,16 @@ class Ui_customer(object):
             exsist_list = df['code'].values.tolist()
             warn_list = []
             for i in range(len(self.outputtable.selectedItems())):
+
                 row = self.outputtable.selectedItems()[i].row()  # 获取选中文本所在的行
                 code = self.outputtable.item(row, 0).text()
                 name = self.outputtable.item(row, 1).text()
+                price_date = hold_stock(code)
+                price = price_date[0]
+                date = price_date[1]
                 if code not in exsist_list:
-                    add_row.append([code, name, '', '', '', '', '', '', ''])
+                    add_row.append([code, name, date, price, 0, 0, 0, 0, 0])
+                    create_holdstock_csv(code)
                 else:
                     warn_list.append(code)
             holdlist_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'holdlist.csv'
