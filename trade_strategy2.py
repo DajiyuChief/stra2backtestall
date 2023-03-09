@@ -1035,6 +1035,8 @@ def run(code_list, percent, stoploss, downnotbuy, principal, winpercent, custome
             continue
 
 
+# def run_holder(code_list, percent, stoploss, downnotbuy, principal)
+
 # def run_customer(start, end, code_list, percent, stoploss, downnotbuy, principal, winpercent):
 #     dirpath = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(downnotbuy) + '\\' + str(percent) + str(
 #         stoploss) + '\\'

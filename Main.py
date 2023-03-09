@@ -43,6 +43,7 @@ class Ui_MainWindow(object):
         self.tabWidget.currentChanged['int'].connect(self.holder.refresh)
         self.tabWidget.currentChanged['int'].connect(self.backtest.refresh_list)
         self.tabWidget.currentChanged['int'].connect(self.customer.refresh_list)
+        self.holder.realtestbutton.clicked.connect(self.turn)
         # self.tabWidget.currentChanged[3].connect(self.holder.refresh)
 
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
@@ -54,6 +55,8 @@ class Ui_MainWindow(object):
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.backtest), _translate("MainWindow", "批量回测"))
 
 
+    def turn(self):
+        self.tabWidget.setCurrentIndex(2)
 
 
 class MainUI(QMainWindow, Ui_MainWindow):

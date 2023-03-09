@@ -20,6 +20,7 @@ from kline import plot_kline
 
 pro = ts.pro_api('f558cbc6b24ed78c2104e209a8a8986b33ec66b7c55bcfa2f46bc108')
 quotation = easyquotation.use('sina')  # 新浪 ['sina'] 腾讯 ['tencent', 'qq']
+# quotation中close是昨日收盘价
 data = pro.query('trade_cal', start_date='20210101', end_date=datetime.date.today().strftime("%Y%m%d"), is_open='1')
 date_list = list(data['cal_date'])[::-1]
 date_int_list = list(map(int, date_list))
@@ -383,7 +384,7 @@ def hold_stock(code):
     # today_split = df_now_dic[0]['date'].split('-')
     # today = today_split[0] + today_split[1] + today_split[2]
     # print(df_now_dic)
-    price = df_now_dic[0]['close']
+    price = df_now_dic[0]['now']
     date = df_now_dic[0]['date']
     # print(price,date)
     return [price,date]
@@ -396,7 +397,7 @@ def create_holddir():
 def create_holdstock_csv(code):
     dir_path = os.getcwd() + os.path.sep + 'hold_dir' + '\\'
     csv_path = dir_path + code +'.csv'
-    header = ['trade_date','type','price','cost_price','now_num','principal','win_percent']
+    header = ['trade_date','type','price','cost_price','now_num','now_principal','all_principal','cost_principal','win_percent']
     if not os.path.exists(csv_path):
         with open(csv_path, 'a', encoding='UTF8', newline='') as f:
             writer = csv.writer(f)
@@ -414,6 +415,6 @@ create_holddir()
 
 # connect_database('23.94.43.9',3306,'root','qwer12345')
 # different_priority_stock()
-# hold_stock('601012.Sh')
+# hold_stock('601012.SH')
 
 

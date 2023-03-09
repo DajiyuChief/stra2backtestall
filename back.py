@@ -25,7 +25,8 @@ from PyQt5.QtWidgets import QAbstractItemView, QHeaderView, QTableWidgetItem, QM
 
 from gol_all import get_value, set_value
 from baseFun import split_list_n_list, set_kline_data, get_stock_code, get_name, mkdir, kill_proc_tree, create_all_dir, \
-    get_need_data, get_path, check_process_running, pull_fun_name, pull_stock_name, hold_stock, create_holdstock_csv
+    get_need_data, get_path, check_process_running, pull_fun_name, pull_stock_name, hold_stock, create_holdstock_csv, \
+    create_finished_list, write_to_csv
 from MessageBox import MessageBox, QuestionBox
 from backtest_all import run2_all
 from load_csvdata import load_finished_code, load_winning_code,load_today_buy
@@ -406,6 +407,15 @@ class Ui_MainWindow(object):
             df = pd.DataFrame(get_value('df_holdlist'))
             exsist_list = df['code'].values.tolist()
             warn_list = []
+
+            # multi_finish= os.getcwd() + os.path.sep + 'multi' + '\\' + 'multi' + str(self.downnotbuy.isChecked()) + '\\' + str(self.conditionrsi.text()) + str(self.stoploss.text()) + '\\' + 'finishedlist.csv'
+            # customer_dir = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(self.downnotbuy.isChecked()) + '\\' + str(self.conditionrsi.text()) + str(self.stoploss.text())
+            # customer_finish = customer_dir + '\\' + 'finishedlist.csv'
+            # mkdir(customer_dir)
+            # if not os.path.exists(customer_finish):
+            #     create_finished_list(customer_finish)
+            # customer_code = pd.read_csv(customer_finish)['code'].values.tolist()
+
             for i in range(len(self.satisfaciedlist.selectedItems())):
                 row = self.satisfaciedlist.selectedItems()[i].row()  # 获取选中文本所在的行
                 code = self.satisfaciedlist.item(row, 0).text()
@@ -413,8 +423,10 @@ class Ui_MainWindow(object):
                 price_date = hold_stock(code)
                 price = price_date[0]
                 date = price_date[1]
+                hold_csv = os.getcwd() + os.path.sep + 'hold_dir' + '\\' + code +'.csv'
                 if code not in exsist_list:
                     create_holdstock_csv(code)
+                    write_to_csv(hold_csv,[date,1,price,0,0,0,0,0,0])
                     add_row.append([code, name, date, price, 0, 0, 0, 0, 0])
                 else:
                     warn_list.append(code)

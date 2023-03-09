@@ -9,10 +9,12 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtCore import QDateTime, QDate, QTime
+from PyQt5.QtWidgets import QWidget, QDateTimeEdit
 
 
 class Ui_stockinfo(object):
+    # param_signal = QtCore.pyqtSignal(str, float, int)
     def setupUi(self, stockinfo):
         stockinfo.setObjectName("stockinfo")
         stockinfo.resize(300, 123)
@@ -50,9 +52,11 @@ class Ui_stockinfo(object):
         self.horizontalLayout_2.addLayout(self.verticalLayout)
         self.verticalLayout_2 = QtWidgets.QVBoxLayout()
         self.verticalLayout_2.setObjectName("verticalLayout_2")
-        self.trade_date = QtWidgets.QComboBox(stockinfo)
-        self.trade_date.setObjectName("trade_date")
-        self.verticalLayout_2.addWidget(self.trade_date)
+        self.dateEdit = QDateTimeEdit(QDate.currentDate(), self)
+        # self.trade_date = QtWidgets.QComboBox(stockinfo)
+        # self.trade_date.setObjectName("trade_date")
+        self.verticalLayout_2.addWidget(self.dateEdit)
+        # self.verticalLayout_2.addWidget(dateEdit)
         self.price = QtWidgets.QLineEdit(stockinfo)
         self.price.setObjectName("price")
         self.verticalLayout_2.addWidget(self.price)
@@ -65,6 +69,28 @@ class Ui_stockinfo(object):
         self.pushButton.setObjectName("pushButton")
         self.verticalLayout_3.addWidget(self.pushButton)
 
+        #默认下，不指定日期的时间，系统会设置一个和本地相同的日期时间格式，时间默认2000年1月1日0时0分0秒
+        # self.dateTimeEdit = QDateTimeEdit(self)
+        #指定当前日期时间为控件的日期时间
+        # self.dateTimeEdit2 = QDateTimeEdit(QDateTime.currentDateTime(), self)
+        #指定当前地日期为控件的日期，注意没有指定时间
+        # self.dateEdit = QDateTimeEdit(QDate.currentDate(), self)
+        #指定当前地时间为控件的时间，注意没有指定日期
+        # self.timeEdit = QDateTimeEdit(QTime.currentTime(), self)
+
+        self.dateEdit.setDisplayFormat('yyyy-MM-dd')
+        # self.dateTimeEdit.setDisplayFormat("yyyy-MM-dd HH:mm:ss")
+        # self.dateTimeEdit2.setDisplayFormat("yyyy/MM/dd HH-mm-ss")
+        # self.dateEdit.setDisplayFormat("yyyy.MM.dd")
+        # self.timeEdit.setDisplayFormat("HH:mm:ss")
+
+        self.dateEdit.setMinimumDate(QDate.currentDate().addDays(-3650))
+        self.dateEdit.setMaximumDate(QDate.currentDate().addDays(0))
+
+        self.dateEdit.setCalendarPopup(True)
+        # self.dateEdit.dateChanged.connect(self.onDateChanged)
+        # self.pushButton.clicked.connect(self.save_func)
+
         self.retranslateUi(stockinfo)
         QtCore.QMetaObject.connectSlotsByName(stockinfo)
 
@@ -76,11 +102,41 @@ class Ui_stockinfo(object):
         self.label.setText(_translate("stockinfo", "购买数量"))
         self.pushButton.setText(_translate("stockinfo", "确认"))
 
+    # def onDateChanged(self):
+    #     dateTime = self.dateEdit.dateTime().toString("yyyy-MM-dd")
+    #     print(dateTime)
 
+    # def save_func(self):
+    #     dateTime = self.dateEdit.dateTime().toString("yyyy-MM-dd")  # 读取日期
+    #     price = float(self.price.text())  # 读取价格
+    #     num = int(self.num.text())  # 读取数量
+    #     print(dateTime,price,num)
+    #     # 发送信号
+    #     self.param_signal.emit(dateTime, price, num)
+
+
+        # 保存后关闭子窗口
+        # self.close()
 
 class StockInfoUI(QWidget, Ui_stockinfo):
+    param_signal = QtCore.pyqtSignal(str, float, int)
+
+
     def __init__(self):
         super(StockInfoUI, self).__init__()
         self.setupUi(self)
-        self.refresh()
+        self.pushButton.clicked.connect(self.save_func)
+
         # self.set_unedit(0)
+
+
+    def save_func(self):
+        dateTime = self.dateEdit.dateTime().toString("yyyy-MM-dd")  # 读取日期
+        price = float(self.price.text())  # 读取价格
+        num = int(self.num.text())  # 读取数量
+        # print(dateTime,price,num)
+        # 发送信号
+        self.param_signal.emit(dateTime, price, num)
+        # 连接信号
+
+        self.close()

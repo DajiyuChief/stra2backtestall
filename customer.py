@@ -24,7 +24,7 @@ from PyQt5.QtWidgets import QWidget, QTableWidgetItem, QAbstractItemView, QHeade
 from MessageBox import MessageBox, QuestionBox
 from backtest_all import run2_all
 from baseFun import get_stock_code, get_name, split_list_n_list, mkdir, kill_proc_tree, get_need_data, set_kline_data, \
-    create_customer_dir, find_proc_tree, check_process_running,hold_stock,create_holdstock_csv
+    create_customer_dir, find_proc_tree, check_process_running, hold_stock, create_holdstock_csv, write_to_csv
 from buyandsellui import BuyandSell
 from gol_all import get_value, set_value
 from load_csvdata import load_finished_code, load_winning_code
@@ -451,9 +451,11 @@ class Ui_customer(object):
                 price_date = hold_stock(code)
                 price = price_date[0]
                 date = price_date[1]
+                hold_csv = os.getcwd() + os.path.sep + 'hold_dir' + '\\' + code + '.csv'
                 if code not in exsist_list:
                     add_row.append([code, name, date, price, 0, 0, 0, 0, 0])
                     create_holdstock_csv(code)
+                    write_to_csv(hold_csv, [date, 1, price, 0, 0, 0, 0, 0, 0])
                 else:
                     warn_list.append(code)
             holdlist_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'holdlist.csv'
