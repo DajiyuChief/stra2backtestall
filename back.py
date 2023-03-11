@@ -331,12 +331,12 @@ class Ui_MainWindow(object):
                 saved_dir_path = os.getcwd() + os.path.sep + '\\' + 'saved_data'
                 data_path = saved_dir_path + '\\' + contents.replace('.', '') + '.csv'
                 # trade_info = get_need_data(data_path, startday, endday, 60, 10)
-                trade_info = pd.read_csv(data_path)[-100:]
+                trade_info = pd.read_csv(data_path)[-365:] # k线日期跨度
                 trade_info['trade_date'] = pd.to_datetime(trade_info['trade_date'], format='%Y%m%d').apply(
                     lambda x: x.strftime('%Y-%m-%d'))
                 csv_path = os.getcwd() + os.path.sep + 'multi' + '\\' + 'multi' + str(downnotbuy_flag) + '\\' + str(conditionrsi) + str(stoploss) + '\\' + contents + '.csv'
                 url = get_path('multiHtml') + contents.replace('.', '') + '.html'
-                details = pd.read_csv(csv_path).iloc[-60:]
+                details = pd.read_csv(csv_path).iloc[-220:] # 带有回测的k线长度
                 details = details[details['trade_type'] != 0]
                 date_list = details['date'].values.tolist()
                 buysell_list = details['trade_type'].values.tolist()

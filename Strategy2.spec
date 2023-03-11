@@ -5,7 +5,7 @@ block_cipher = None
 
 
 a = Analysis(
-    ['Strategy2.py','back.py','backtest_all.py','baseFun.py','buyandsellui.py','customer.py','gol_all.py','Holder.py','kline.py','load_csvdata.py','Main.py','MessageBox.py','setting.py'],
+    ['Strategy2.py','back.py','backtest_all.py','baseFun.py','buyandsellui.py','customer.py','gol_all.py','Holder.py','kline.py','load_csvdata.py','Main.py','MessageBox.py','setting.py','stockinfo.py'],
     pathex=[],
     binaries=[],
     datas=[],

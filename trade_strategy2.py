@@ -26,7 +26,7 @@ from datetime import date, datetime, timedelta
 from chinese_calendar import is_holiday
 import csv
 
-from baseFun import find_real_start_end, get_path, write_to_csv, mkdir, create_finished_list, get_name
+from baseFun import find_real_start_end, get_path, write_to_csv, mkdir, create_finished_list, get_name,get_priority
 
 pro = ts.pro_api('f558cbc6b24ed78c2104e209a8a8986b33ec66b7c55bcfa2f46bc108')
 quotation = easyquotation.use('sina')  # 新浪 ['sina'] 腾讯 ['tencent', 'qq']
@@ -48,6 +48,9 @@ trade_flag_list = pd.DataFrame(
              'add_flag', 'add_principal', 'delay_buy', 'low_rsi', 'win_stop'])
 
 
+# 中低位股票
+priority_csv = pd.read_csv(os.getcwd() + os.path.sep + 'priority.csv')
+gol_code =''
 # print(code, date, close, high, low, max, rsi, rsi_var, trade_type, now_buy_sell, pre_middle_date, mid_step,
 #       common_buy_boll_days, common_sell_boll_days, sp_boll_days, principal, stock_num, add_flag, add_principal,
 #       delay_buy)
@@ -66,7 +69,7 @@ def set_info(start, end, stock, type):
     global calculate_list
     stock_code = stock
     # start = datetime(int(start[0:4]), int(start[4:6]), int(start[6:8]))
-    offset = timedelta(days=200)
+    offset = timedelta(days=400)
     # start = start - offset
     # start_ymd = start.strftime('%Y%m%d')
     today = datetime.today().strftime('%Y%m%d')
@@ -101,6 +104,7 @@ def set_info(start, end, stock, type):
     global_data['ma20'] = round(global_data['close'].rolling(20).mean(), 2)
     global_data['ma30'] = round(global_data['close'].rolling(30).mean(), 2)
     calculate_list = global_data['trade_date'].values.tolist()
+    # print(global_data)
     return global_data
 
 
@@ -492,8 +496,14 @@ def stop_win(date):
     :param date:
     :return: True or False
     """
+
     rsi = getRSI(date)
-    if rsi > 90:
+    priority = get_priority(priority_csv,gol_code)
+    if priority == 1:
+        target = 80
+    else:
+        target = 90
+    if rsi > target:
         return True
     return False
 
@@ -939,7 +949,7 @@ def rest_days_insert(code, date, percent, stoploss, downnotbuy, principal):
 def first_run(code, percent, stoploss, downnotbuy, principal):
     # today = datetime.today().strftime('%Y%m%d')
     today = settoday()
-    offset = timedelta(days=90)
+    offset = timedelta(days=365)
     # start = (datetime.today() - offset).strftime('%Y%m%d')
     start = (datetime.strptime(settoday(), "%Y%m%d") - offset).strftime('%Y%m%d')
     set_info(today, today, code, 'realtime')
@@ -994,6 +1004,8 @@ def run(code_list, percent, stoploss, downnotbuy, principal, winpercent, custome
         mkdir(dirpath)
         create_finished_list(finishlist_path)
     for code in code_list:
+        global gol_code
+        gol_code = code
         # path = get_path('multi' + str(downnotbuy)) + code + '.csv'
         path = dirpath + code + '.csv'
         # finishlist_path = os.getcwd() + os.path.sep + 'multi' + '\\' + 'multi' + str(
@@ -1008,18 +1020,21 @@ def run(code_list, percent, stoploss, downnotbuy, principal, winpercent, custome
             trade_flag_list.to_csv(path, index=False)  # 保存标志文件
             save_back_tocsv(code, winpercent, False)
 
-            span_60_days = trade_flag_list.iloc[-61:]
-            stock_num = span_60_days.iloc[0]['stock_num']
-            price = span_60_days.iloc[0]['close']
-            add_principal = sum(span_60_days['add_principal'].values.tolist())
-            sum_principal = stock_num * price + add_principal
-            end_price = span_60_days.iloc[-1]['close']
-            end_principal = span_60_days.iloc[-1]['stock_num'] * end_price + span_60_days.iloc[-1]['principal']
+            span_days = trade_flag_list.iloc[-220:]
+            stock_num = span_days.iloc[0]['stock_num']
+            price = span_days.iloc[0]['close']
+            add_principal = sum(span_days['add_principal'].values.tolist())
+            # sum_principal = stock_num * price + add_principal
+            sum_principal = add_principal
+            end_price = span_days.iloc[-1]['close']
+            end_principal = span_days.iloc[-1]['stock_num'] * end_price + span_days.iloc[-1]['principal']
             win_percent = round(((end_principal / sum_principal) - 1) * 100, 2)
+            # print(span_days)
+            # print(add_principal,end_principal)
             up_percent = round(((end_price / price) - 1) * 100, 2)
             diff_percent = round(win_percent - up_percent, 2)
-            trade_type = span_60_days.iloc[-1]['trade_type']
-            span_days = str(span_60_days.iloc[0]['date']) + '-' + str(span_60_days.iloc[-1]['date'])
+            trade_type = span_days.iloc[-1]['trade_type']
+            span_days = str(span_days.iloc[0]['date']) + '-' + str(span_days.iloc[-1]['date'])
             name = get_name(code)
 
             write_to_csv(finishlist_path, [code, name, span_days, win_percent, up_percent, diff_percent, trade_type])
@@ -1031,6 +1046,7 @@ def run(code_list, percent, stoploss, downnotbuy, principal, winpercent, custome
             trade_flag_list.drop(trade_flag_list.index, inplace=True)  # 清除trade_flag_list
             time.sleep(1)
         except Exception as e:
+            # continue
             traceback.print_exc()
             continue
 
@@ -1089,6 +1105,6 @@ def save_back_tocsv(code, winpercent, customer_flag):
 
 #
 # run(['600073.SH', '000005.SZ'], 0.1, 0.2, True, 100000, 0.1,False)
-# run(['601012.SH'], 0.1, 0.2, True, 100000, 0.1, True)
+# run(['000100.SZ'], 0.1, 0.2, True, 100000, 0.1, True)
 # run_customer('20220707', '20230211', ['600073.SH', '000005.SZ'], 0.1, 0.2, True, 100000, 0.1)
 # run_customer('20220707', '20230211', ['600073.SH'], 0.1, 0.2, True, 100000, 0.1)

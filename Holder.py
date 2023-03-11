@@ -518,8 +518,8 @@ class Ui_Holder(object):
             customer_flag = True
             csv_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(
                 downnotbuy_flag) + '\\' + conditionrsi + stoploss + '\\' + 'finishedlist.csv'
-            result_csv = pd.read_csv(csv_path)
-            row_count = self.holderlist.rowCount()
+            # result_csv = pd.read_csv(csv_path)
+            # row_count = self.holderlist.rowCount()
             # print(result_csv)
             # for row in range(0,row_count):
             #     print(row)

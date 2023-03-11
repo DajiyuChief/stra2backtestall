@@ -25,6 +25,7 @@ data = pro.query('trade_cal', start_date='20210101', end_date=datetime.date.toda
 date_list = list(data['cal_date'])[::-1]
 date_int_list = list(map(int, date_list))
 
+
 def save_trade_date():
     # 获取交易日
     data = pro.query('trade_cal', is_open='1')
@@ -360,6 +361,7 @@ def get_path(dir):
 
 
 def different_priority_stock():
+    # 1 高位
     code_list = pd.read_csv('name.csv')['ts_code'].values.tolist()
     today = datetime.datetime.today().strftime('%Y%m%d')
     last_year = datetime.datetime.today() - datetime.timedelta(days=365)
@@ -403,6 +405,19 @@ def create_holdstock_csv(code):
             writer = csv.writer(f)
             writer.writerow(header)
     return None
+
+def get_priority(priority_csv,code):
+    """
+    获取高低位股数据
+    :param priority_csv:
+    :param code:
+    :return:
+    """
+    try:
+        priority = priority_csv[priority_csv['code'] == code]['priority'].values.tolist()[0]
+    except:
+        priority = 2
+    return priority
 
 mkdir(os.getcwd() + os.path.sep + 'customer')
 mkdir(os.getcwd() + os.path.sep + 'saved_data')
