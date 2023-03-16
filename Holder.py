@@ -250,7 +250,8 @@ class Ui_Holder(object):
                 self.holderlist.setItem(row, 6, current_market_value)
                 self.holderlist.setItem(row, 7, win_percent)
                 self.holderlist.setItem(row, 8, upper_percent)
-            self.refresh_list()
+            # self.refresh_list()
+            # self.refresh_upper_percent()
             self.holderlist.blockSignals(False)
         except Exception as e:
             self.message.show_message(str(e))
@@ -477,7 +478,7 @@ class Ui_Holder(object):
                     self.holderlist.setItem(row, 7, QTableWidgetItem(str(win_percent)))
                     set_value('df_holdlist', df)
                     self.save()
-
+                    # self.refresh()
             # print(code,add_number,number)
         except Exception as e:
             traceback.print_exc()

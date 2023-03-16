@@ -23,6 +23,7 @@ import tushare as ts
 import talib as ta
 import datetime
 from datetime import date, datetime, timedelta
+from client import get_data
 from chinese_calendar import is_holiday
 import csv
 
@@ -104,9 +105,60 @@ def set_info(start, end, stock, type):
     global_data['ma20'] = round(global_data['close'].rolling(20).mean(), 2)
     global_data['ma30'] = round(global_data['close'].rolling(30).mean(), 2)
     calculate_list = global_data['trade_date'].values.tolist()
+    # print(calculate_list)
     # print(global_data)
     return global_data
 
+
+def set_info_multi(stock):
+    """
+    设置回测数据
+    :param start: 开始时间
+    :param end: 结束时间
+    :param stock: 股票代码
+    :param type: 为realtime，back2all时添加今日数据到data中
+    :return:dataframe
+    """
+    global stock_code
+    global global_data
+    global calculate_list
+    stock_code = stock
+    stock = stock.split('.')[0]
+    # start = datetime(int(start[0:4]), int(start[4:6]), int(start[6:8]))
+    # offset = timedelta(days=60)
+    # start = start - offset
+    # start_ymd = start.strftime('%Y%m%d')
+    # today = datetime.today().strftime('%Y%m%d')
+    # start_ymd = (datetime.today() - offset).strftime('%Y%m%d')
+    global_data = get_data(stock)
+    # global_data = global_data.rename(
+    #     columns={"MA5": "ma5", "MA10": "ma10", "MA20": "ma20", "MA30": "ma30", "MA60": "ma60"})
+    # clear()
+    # if type == 'realtime' or type == 'back2all':
+    global_data = insert_nowdata(global_data, stock_code)
+    # boll线
+    print(global_data)
+    global_data['upper'], global_data['middle'], global_data['lower'] = ta.BBANDS(
+        global_data.close.values,
+        timeperiod=20,
+        nbdevup=2,
+        nbdevdn=2,
+        matype=0)
+    global_data['upper'] = round(global_data['upper'], 2)
+    global_data['middle'] = round(global_data['middle'], 2)
+    global_data['lower'] = round(global_data['lower'], 2)
+    global_data['rsi'] = ta.RSI(global_data.close.values, timeperiod=6)
+    global_data['rsi'] = round(global_data['rsi'], 4)
+    global_data['rsi_var'] = global_data['rsi'].diff() / np.roll(global_data['rsi'], shift=1)
+    global_data['rsi_var'] = round(global_data['rsi_var'], 4)
+    # global_data = global_data.rename(columns={"MA5": "ma5", "MA10": "ma10","MA20":"ma20","MA30":"ma30","MA60":"ma60"})
+    global_data['ma5'] = round(global_data['close'].rolling(5).mean(), 2)
+    global_data['ma10'] = round(global_data['close'].rolling(10).mean(), 2)
+    global_data['ma20'] = round(global_data['close'].rolling(20).mean(), 2)
+    global_data['ma30'] = round(global_data['close'].rolling(30).mean(), 2)
+    global_data = global_data[29:].reset_index()
+    calculate_list = global_data['trade_date'].values.tolist()
+    return global_data
 
 def clear():
     """
@@ -206,6 +258,7 @@ def date_calculate(date, days):
     :param days: 前推 后推多少交易日 负值前推，正值后推
     :return: 计算后日期
     """
+    # print(date)
     global calculate_list
     time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     nowtime = time[11:13]
@@ -218,6 +271,7 @@ def date_calculate(date, days):
         date = calculate_list[-1]
     # print(global_data)
     # print(calculate_list)
+    # print(date)
     try:
         index = calculate_list.index(date)
         if days > 0:
@@ -244,7 +298,8 @@ def used_date(start, end):
     """
     global transaction_date
     trade_date = find_real_start_end(start, end)
-    # transaction_date = trade_date
+    transaction_date = trade_date
+    # print(trade_date)
     return trade_date
 
 
@@ -498,11 +553,13 @@ def stop_win(date):
     """
 
     rsi = getRSI(date)
+
     priority = get_priority(priority_csv,gol_code)
     if priority == 1:
         target = 80
     else:
         target = 90
+    # print(date,target)
     if rsi > target:
         return True
     return False
@@ -976,6 +1033,7 @@ def not_first_run(code, percent, stoploss, downnotbuy, principal, customer_flag)
     last_date = str(df[df['code'] == code].tail(1)['date'].values[0])
     # today = datetime.today().strftime('%Y%m%d')
     today = settoday()
+    # print(today)
     if last_date == today:
         last_date = str(df[df['code'] == code].tail(2)['date'].values[0])
         trade_flag_list = trade_flag_list.drop(trade_flag_list.tail(1).index)
@@ -999,7 +1057,7 @@ def run(code_list, percent, stoploss, downnotbuy, principal, winpercent, custome
     else:
         dirpath = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(downnotbuy) + '\\' + str(
             percent) + str(
-            stoploss) + '\\'
+            stoploss) + '\\' + 'realtime' + '\\'
         finishlist_path = dirpath + 'finishedlist.csv'
         mkdir(dirpath)
         create_finished_list(finishlist_path)
@@ -1024,8 +1082,8 @@ def run(code_list, percent, stoploss, downnotbuy, principal, winpercent, custome
             stock_num = span_days.iloc[0]['stock_num']
             price = span_days.iloc[0]['close']
             add_principal = sum(span_days['add_principal'].values.tolist())
-            # sum_principal = stock_num * price + add_principal
-            sum_principal = add_principal
+            sum_principal = stock_num * price + add_principal
+            # sum_principal = add_principal
             end_price = span_days.iloc[-1]['close']
             end_principal = span_days.iloc[-1]['stock_num'] * end_price + span_days.iloc[-1]['principal']
             win_percent = round(((end_principal / sum_principal) - 1) * 100, 2)
@@ -1051,36 +1109,151 @@ def run(code_list, percent, stoploss, downnotbuy, principal, winpercent, custome
             continue
 
 
-# def run_holder(code_list, percent, stoploss, downnotbuy, principal)
 
-# def run_customer(start, end, code_list, percent, stoploss, downnotbuy, principal, winpercent):
-#     dirpath = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(downnotbuy) + '\\' + str(percent) + str(
-#         stoploss) + '\\'
-#     finishlist_path = dirpath + 'finishedlist.csv'
-#     mkdir(dirpath)
-#     create_finished_list(finishlist_path)
-#     for code in code_list:
-#         # path = get_path('customer' + str(downnotbuy)) + code + '.csv'
-#         path = dirpath + code + '.csv'
-#         # finishlist_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(
-#         #     downnotbuy) + '\\' + 'finishedlist.csv'
-#         try:
-#             if not os.path.exists(path):
-#                 first_run(code, percent, stoploss, downnotbuy, principal)
-#             else:
-#                 not_first_run(start, end, code, percent, stoploss, downnotbuy, principal)
-#             print('正在回测' + code)
-#             trade_flag_list.to_csv(path, index=False)
-#             save_back_tocsv(code, winpercent, True)
-#             write_to_csv(finishlist_path, [code])
-#             finishlist_csv = pd.read_csv(finishlist_path).drop_duplicates(subset='code', keep='first')
-#             finishlist_csv.to_csv(finishlist_path, index=False)
-#             trade_flag_list.drop(trade_flag_list.index, inplace=True)
-#             time.sleep(1)
-#         except Exception as e:
-#             traceback.print_exc()
-#             continue
+def run_customer(start, end, code_list, percent, stoploss, downnotbuy, principal, winpercent):
+    dirpath = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(downnotbuy) + '\\' + str(
+        percent) + str(
+        stoploss) + '\\'+ start+end+'\\'
+    finishlist_path = dirpath + 'finishedlist.csv'
+    mkdir(dirpath)
+    create_finished_list(finishlist_path)
+    mkdir(dirpath)
+    create_finished_list(finishlist_path)
+    for code in code_list:
+        global gol_code
+        gol_code = code
+        path = dirpath + code + '.csv'
+        try:
+            # if not os.path.exists(path):
+            first_run_customer(start,end,code, percent, stoploss, downnotbuy, principal)
+            # else:
+            #     not_first_run_customer(start, end, code, percent, stoploss, downnotbuy, principal)
+            print('正在回测' + code)
+            trade_flag_list.to_csv(path, index=False)
+            save_back_tocsv(code, winpercent, True)
 
+            # span_days = trade_flag_list.iloc[-220:]
+            span_days = trade_flag_list
+            stock_num = span_days.iloc[0]['stock_num']
+            price = span_days.iloc[0]['close']
+            add_principal = sum(span_days['add_principal'].values.tolist())
+            sum_principal = stock_num * price + add_principal
+            # sum_principal = add_principal
+            end_price = span_days.iloc[-1]['close']
+            end_principal = span_days.iloc[-1]['stock_num'] * end_price + span_days.iloc[-1]['principal']
+            win_percent = round(((end_principal / add_principal) - 1) * 100, 2)
+            # print(add_principal,end_principal,sum_principal)
+            up_percent = round(((end_price / price) - 1) * 100, 2)
+            diff_percent = round(win_percent - up_percent, 2)
+            trade_type = span_days.iloc[-1]['trade_type']
+            span_days = str(span_days.iloc[0]['date']) + '-' + str(span_days.iloc[-1]['date'])
+            name = get_name(code)
+
+            write_to_csv(finishlist_path, [code, name, span_days, win_percent, up_percent, diff_percent, trade_type])
+
+            # write_to_csv(finishlist_path, [code])
+            finishlist_csv = pd.read_csv(finishlist_path).drop_duplicates(subset='code', keep='first')
+            finishlist_csv.to_csv(finishlist_path, index=False)
+            trade_flag_list.drop(trade_flag_list.index, inplace=True)
+            time.sleep(1)
+        except Exception as e:
+            traceback.print_exc()
+            continue
+
+
+def first_run_customer(start,end,code, percent, stoploss, downnotbuy, principal):
+    # today = datetime.today().strftime('%Y%m%d')
+    # today = settoday()
+    # offset = timedelta(days=365)
+    # start = (datetime.today() - offset).strftime('%Y%m%d')
+    # start = (datetime.strptime(settoday(), "%Y%m%d") - offset).strftime('%Y%m%d')
+    set_info_customer(start, end, code, 'realtime')
+    trans_date = used_date(start, end)
+    # print(trans_date)
+    first_day = trans_date[0]
+    rest_days = trans_date[1:]
+    first_day_insert(code, first_day, percent, downnotbuy, principal)
+    for date in rest_days:
+        rest_days_insert(code, date, percent, stoploss, downnotbuy, principal)
+
+
+def not_first_run_customer(start,end,code, percent, stoploss, downnotbuy, principal, customer_flag):
+    global trade_flag_list
+    if not customer_flag:
+        path = os.getcwd() + os.path.sep + 'multi' + '\\' + 'multi' + str(downnotbuy) + '\\' + str(percent) + str(
+            stoploss) + '\\' + code + '.csv'
+    else:
+        path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(downnotbuy) + '\\' + str(percent) + str(
+            stoploss) + '\\' + code + '.csv'
+    df = pd.read_csv(path, dtype={'pre_middle_date': str}, index_col=False)
+    trade_flag_list = df
+    # print(path)
+    last_date = str(df[df['code'] == code].tail(1)['date'].values[0])
+    # today = datetime.today().strftime('%Y%m%d')
+    today = settoday()
+    if last_date == today:
+        last_date = str(df[df['code'] == code].tail(2)['date'].values[0])
+        trade_flag_list = trade_flag_list.drop(trade_flag_list.tail(1).index)
+    set_info(last_date, today, code, 'realtime')
+    trans_date = used_date(last_date, today)[1:]
+    print(last_date, today, trans_date)
+    if len(trans_date) == 0:
+        return
+    for date in trans_date:
+        rest_days_insert(code, str(date), percent, stoploss, downnotbuy, principal)
+
+def set_info_customer(start, end, stock, type):
+    """
+    设置回测数据
+    :param start: 开始时间
+    :param end: 结束时间
+    :param stock: 股票代码
+    :param type: 为realtime，back2all时添加今日数据到data中
+    :return:dataframe
+    """
+    global stock_code
+    global global_data
+    global calculate_list
+    stock_code = stock
+    start = datetime(int(start[0:4]), int(start[4:6]), int(start[6:8]))
+    offset = timedelta(days=60)
+    start = start - offset
+    start_ymd = start.strftime('%Y%m%d')
+    # today = datetime.today().strftime('%Y%m%d')
+    # start_ymd = (datetime.today() - offset).strftime('%Y%m%d')
+    global_data = setdata(start_ymd, end, stock)
+    clear()
+    if type == 'realtime' or type == 'back2all':
+        global_data = insert_nowdata(global_data, stock)
+    # boll线
+    global_data['upper'], global_data['middle'], global_data['lower'] = ta.BBANDS(
+        global_data.close.values,
+        timeperiod=20,
+        nbdevup=2,
+        nbdevdn=2,
+        matype=0)
+    global_data['upper'] = round(global_data['upper'], 2)
+    global_data['middle'] = round(global_data['middle'], 2)
+    global_data['lower'] = round(global_data['lower'], 2)
+    global_data['rsi'] = ta.RSI(global_data.close.values, timeperiod=6)
+    global_data['rsi'] = round(global_data['rsi'], 4)
+    global_data['rsi_var'] = global_data['rsi'].diff() / np.roll(global_data['rsi'], shift=1)
+    global_data['rsi_var'] = round(global_data['rsi_var'], 4)
+    global_data['low-lowboll'] = global_data['low'] - global_data['lower']
+    global_data['high-highboll'] = global_data['high'] - global_data['upper']
+    global_data['high-mid'] = global_data['high'] - global_data['middle']
+    global_data['mid-low'] = global_data['middle'] - global_data['low']
+    global_data['close-open'] = global_data['close'] - global_data['open']
+    global_data['yes_close-mid'] = global_data['pre_close'] - global_data['middle']
+    global_data['mid-close'] = global_data['middle'] - global_data['close']
+    global_data['ma5'] = round(global_data['close'].rolling(5).mean(), 2)
+    global_data['ma10'] = round(global_data['close'].rolling(10).mean(), 2)
+    global_data['ma20'] = round(global_data['close'].rolling(20).mean(), 2)
+    global_data['ma30'] = round(global_data['close'].rolling(30).mean(), 2)
+    calculate_list = global_data['trade_date'].values.tolist()
+    # print(calculate_list)
+    # print(global_data)
+    return global_data
 
 def save_back_tocsv(code, winpercent, customer_flag):
     """
@@ -1104,7 +1277,7 @@ def save_back_tocsv(code, winpercent, customer_flag):
 
 
 #
-# run(['600073.SH', '000005.SZ'], 0.1, 0.2, True, 100000, 0.1,False)
-# run(['000100.SZ'], 0.1, 0.2, True, 100000, 0.1, True)
+run_customer('20221010','20230119',['600073.SH', '000005.SZ'], 0.1, 0.2, True, 100000, 0.1)
+run(['000100.SZ','600073.SH'], 0.1, 0.2, True, 100000, 0.1, True)
 # run_customer('20220707', '20230211', ['600073.SH', '000005.SZ'], 0.1, 0.2, True, 100000, 0.1)
 # run_customer('20220707', '20230211', ['600073.SH'], 0.1, 0.2, True, 100000, 0.1)
