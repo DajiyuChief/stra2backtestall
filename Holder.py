@@ -499,7 +499,7 @@ class Ui_Holder(object):
                 # print(data_index)
                 buy_price = df.iloc[data_index]['first_buy_price']
                 upper_percent =round((now_price - buy_price)*100/buy_price,2)
-                self.holderlist.setItem(row, 7, QTableWidgetItem(str(upper_percent)))
+                self.holderlist.setItem(row, 8, QTableWidgetItem(str(upper_percent)))
                 # print(buy_price)
             # self.save()
         except Exception as e:
@@ -567,6 +567,7 @@ class HolderUI(QMainWindow, Ui_Holder):
         super(HolderUI, self).__init__()
         self.setupUi(self)
         self.refresh()
+        self.refresh_upper_percent()
         # self.set_unedit(0)
 
 

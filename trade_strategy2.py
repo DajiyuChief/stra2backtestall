@@ -260,6 +260,7 @@ def date_calculate(date, days):
     """
     # print(date)
     global calculate_list
+    # print(calculate_list)
     time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     nowtime = time[11:13]
     if nowtime[0] == 0:
@@ -302,6 +303,18 @@ def used_date(start, end):
     # print(trade_date)
     return trade_date
 
+def used_date_multi(start, end):
+    """
+    返回开始到结束日期之间的交易日列表
+    :param start: 开始时间
+    :param end: 结束时间
+    :return: 交易日列表
+    """
+    # global transaction_date
+    # trade_date = find_real_start_end(start, end)
+    # transaction_date = trade_date
+    # # print(trade_date)
+    return global_data['trade_date'].values.tolist()
 
 def get_price(date, type):
     """
@@ -496,16 +509,19 @@ def both_sp(date):
     :param date:
     :return: 1 0 -1
     """
+    yes = date_calculate(date,-1)
+    yes_close = get_price(yes,'close')
     high = get_price(date, 'high')
     low = get_price(date, 'low')
     highboll = getBoll(date)[0]
     lowboll = getBoll(date)[2]
+    midboll = getBoll(date)[1]
     if (high >= highboll) and (low <= lowboll):
         open = get_price(date, 'open')
         close = get_price(date, 'close')
-        if close > open:
+        if close > open and yes_close < midboll:
             return 1
-        if open > close:
+        if open > close and yes_close > midboll:
             return -1
     return 0
 
@@ -789,7 +805,6 @@ def rest_days_sp_bolls(date):
 
 def first_day_insert(code, date, percnet, downnotbuy, principal):
     """
-
     :param code:
     :param date:
     :param percnet:
@@ -1002,31 +1017,151 @@ def rest_days_insert(code, date, percent, stoploss, downnotbuy, principal):
             delay_buy, low_rsi, win_stop]
     trade_flag_list.loc[len(trade_flag_list)] = flag
 
+def rest_days_insert_with_middle(code, date, percent, stoploss, downnotbuy, principal,middleadd):
+    global trade_flag_list
+    last_flag = trade_flag_list.tail(1)
+    isdown = check_isdown(date, downnotbuy)
+    low_rsi = rsi_low(date)
+    win_stop = stop_win(date)
+    close = get_price(date, 'close')
+    high = get_price(date, 'high')
+    low = get_price(date, 'low')
+    max_price = close
+    rsi = getRSI(date)
+    rsi_var = RSI_vary(date)
+    trade_type = 0
+    now_buy_sell = last_flag['now_buy_sell'].values[0]
+    can_buy = False
+    can_sell = False
+    principal = last_flag['principal'].values[0]
+    stock_num = last_flag['stock_num'].values[0]
+    add_flag = last_flag['add_flag'].values[0]
+    add_principal = 0
+    delay_buy = last_flag['delay_buy'].values[0]
 
-def first_run(code, percent, stoploss, downnotbuy, principal):
+    can_common_boll_buy = rest_days_common_buy_boll(date, percent)[0]
+    common_buy_boll_days = rest_days_common_buy_boll(date, percent)[1]
+    can_common_boll_sell = rest_days_common_sell_boll(date, percent)[0]
+    common_sell_boll_days = rest_days_common_sell_boll(date, percent)[1]
+    sp_boll_flag = rest_days_sp_bolls(date)[0]
+    sp_boll_days = rest_days_sp_bolls(date)[1]
+    mid_step = rest_days_mid(date)[0]
+    pre_mid_step = last_flag['mid_step'].values[0]
+    pre_middle_date = rest_days_mid(date)[1]
+
+    if now_buy_sell == 1:
+        # 取消延迟买
+        # if delay_buy and not (
+        #         (close < (1 - stoploss) * max_price) or stop_win(date) or can_common_boll_sell or (
+        #         sp_boll_flag == -1)) and not isdown:
+        #     max_price = close
+        #     trade_type = 1
+        #     now_buy_sell = -1
+        #     stock_num = principal // close
+        #     principal = principal - stock_num * close
+        #     delay_buy = False
+        #     print(date, '买入')
+        if can_common_boll_buy or (mid_step > 0) or (sp_boll_flag == 1):
+            can_buy = True
+        if can_buy:
+            if isdown:
+                pass
+                # delay_buy = True
+            else:
+                max_price = close
+                trade_type = 1
+                now_buy_sell = -1
+                stock_num = principal // close
+                principal = principal - stock_num * close
+                delay_buy = False
+                print(date, '买入', can_common_boll_buy, (mid_step > 0), (sp_boll_flag == 1))
+    elif now_buy_sell == -1:
+        max_price = max(close, last_flag['max_price'].values[0])
+        if (close < (1 - stoploss) * max_price) or stop_win(date) or can_common_boll_sell or (sp_boll_flag == -1):
+            if (close < (1 - stoploss) * max_price):
+                trade_type = -3
+                print(date, '止损')
+            elif stop_win(date):
+                trade_type = 3
+                print(date, '止盈')
+            else:
+                trade_type = -1
+                print(date, '卖出')
+            now_buy_sell = 1
+            principal = principal + stock_num * close
+            stock_num = 0
+        elif stock_num > 0 and 0 < low_rsi != add_flag and add_flag < 3:
+            max_price = close
+            trade_type = 2
+            print(date, '加仓')
+            add_flag = add_flag + low_rsi
+            add_principal = (stock_num // 4) * close - principal
+            if add_principal <= 0:
+                principal = principal + add_principal
+                add_principal = 0
+            else:
+                principal = (principal + add_principal) - (stock_num // 4) * close
+            stock_num = stock_num + (stock_num // 4)
+        elif stock_num > 0 and mid_step > 0 and mid_step != pre_mid_step:
+            if middleadd:
+                max_price = close
+                trade_type = 2
+                add_principal = stock_num * close - principal
+                if add_principal <= 0:
+                    principal = principal + add_principal
+                    add_principal = 0
+                else:
+                    principal = (principal + add_principal) - stock_num * close
+                stock_num = stock_num * 2
+                print(date, '加仓')
+
+        elif stock_num > 0 and mid_step < 0 and mid_step != pre_mid_step:
+            if middleadd:
+                trade_type = -2
+                principal = (stock_num // 2) * close + principal
+                stock_num = stock_num // 2
+                print(date, '减仓', 1)
+            else:
+                trade_type = -1
+                principal = stock_num  * close + principal
+                stock_num = 0
+                print(date, '卖出', 1)
+    flag = [code, date, close, high, low, max_price, rsi, rsi_var, trade_type, now_buy_sell, pre_middle_date,
+            mid_step,
+            common_buy_boll_days, common_sell_boll_days, sp_boll_days, principal, stock_num, add_flag,
+            add_principal,
+            delay_buy, low_rsi, win_stop]
+    trade_flag_list.loc[len(trade_flag_list)] = flag
+
+
+def first_run(code, percent, stoploss, downnotbuy, principal,middleadd):
     # today = datetime.today().strftime('%Y%m%d')
     today = settoday()
     offset = timedelta(days=365)
     # start = (datetime.today() - offset).strftime('%Y%m%d')
     start = (datetime.strptime(settoday(), "%Y%m%d") - offset).strftime('%Y%m%d')
+
     set_info(today, today, code, 'realtime')
+
+    # set_info_multi(code)
     trans_date = used_date(start, today)
     first_day = trans_date[0]
     rest_days = trans_date[1:]
     first_day_insert(code, first_day, percent, downnotbuy, principal)
     for date in rest_days:
-        rest_days_insert(code, date, percent, stoploss, downnotbuy, principal)
+        # rest_days_insert(code, date, percent, stoploss, downnotbuy, principal)
+        rest_days_insert_with_middle(code, date, percent, stoploss, downnotbuy, principal,middleadd)
     # trade_flag_list.to_csv('trade_flag.csv', index= False)
 
 
-def not_first_run(code, percent, stoploss, downnotbuy, principal, customer_flag):
+def not_first_run(code, percent, stoploss, downnotbuy, principal, customer_flag,middleadd):
     global trade_flag_list
     if not customer_flag:
         path = os.getcwd() + os.path.sep + 'multi' + '\\' + 'multi' + str(downnotbuy) + '\\' + str(percent) + str(
-            stoploss) + '\\' + code + '.csv'
+            stoploss) + str(middleadd)+'\\' + code + '.csv'
     else:
         path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(downnotbuy) + '\\' + str(percent) + str(
-            stoploss) + '\\' + code + '.csv'
+            stoploss) + str(middleadd)+'\\' + code + '.csv'
     df = pd.read_csv(path, dtype={'pre_middle_date': str}, index_col=False)
     trade_flag_list = df
     # print(path)
@@ -1037,27 +1172,31 @@ def not_first_run(code, percent, stoploss, downnotbuy, principal, customer_flag)
     if last_date == today:
         last_date = str(df[df['code'] == code].tail(2)['date'].values[0])
         trade_flag_list = trade_flag_list.drop(trade_flag_list.tail(1).index)
+    # set_info(last_date, today, code, 'realtime')
+    # trans_date = used_date(last_date, today)[1:]
+
     set_info(last_date, today, code, 'realtime')
     trans_date = used_date(last_date, today)[1:]
     print(last_date, today, trans_date)
     if len(trans_date) == 0:
         return
     for date in trans_date:
-        rest_days_insert(code, str(date), percent, stoploss, downnotbuy, principal)
+        # rest_days_insert(code, str(date), percent, stoploss, downnotbuy, principal)
+        rest_days_insert_with_middle(code, str(date), percent, stoploss, downnotbuy, principal,middleadd)
     # trade_flag_list.to_csv('trade_flag.csv', index=False)
 
 
-def run(code_list, percent, stoploss, downnotbuy, principal, winpercent, customer_flag):
+def run(code_list, percent, stoploss, downnotbuy, principal, winpercent, customer_flag,middleadd):
     if not customer_flag:
         dirpath = os.getcwd() + os.path.sep + 'multi' + '\\' + 'multi' + str(downnotbuy) + '\\' + str(percent) + str(
-            stoploss) + '\\'
+            stoploss) + str(middleadd)+'\\'
         finishlist_path = dirpath + 'finishedlist.csv'
         mkdir(dirpath)
         create_finished_list(finishlist_path)
     else:
         dirpath = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(downnotbuy) + '\\' + str(
             percent) + str(
-            stoploss) + '\\' + 'realtime' + '\\'
+            stoploss) + str(middleadd)+'\\' + 'realtime' + '\\'
         finishlist_path = dirpath + 'finishedlist.csv'
         mkdir(dirpath)
         create_finished_list(finishlist_path)
@@ -1070,9 +1209,9 @@ def run(code_list, percent, stoploss, downnotbuy, principal, winpercent, custome
         #     downnotbuy) + '\\' + 'finishedlist.csv'
         try:
             if not os.path.exists(path):
-                first_run(code, percent, stoploss, downnotbuy, principal)
+                first_run(code, percent, stoploss, downnotbuy, principal,middleadd)
             else:
-                not_first_run(code, percent, stoploss, downnotbuy, principal, customer_flag)
+                not_first_run(code, percent, stoploss, downnotbuy, principal, customer_flag,middleadd)
             print('正在回测' + code)
             # print(trade_flag_list)
             trade_flag_list.to_csv(path, index=False)  # 保存标志文件
@@ -1081,7 +1220,7 @@ def run(code_list, percent, stoploss, downnotbuy, principal, winpercent, custome
             span_days = trade_flag_list.iloc[-220:]
             stock_num = span_days.iloc[0]['stock_num']
             price = span_days.iloc[0]['close']
-            add_principal = sum(span_days['add_principal'].values.tolist())
+            add_principal = sum(span_days.iloc[1:]['add_principal'].values.tolist()) + span_days.iloc[0]['principal']
             sum_principal = stock_num * price + add_principal
             # sum_principal = add_principal
             end_price = span_days.iloc[-1]['close']
@@ -1110,13 +1249,11 @@ def run(code_list, percent, stoploss, downnotbuy, principal, winpercent, custome
 
 
 
-def run_customer(start, end, code_list, percent, stoploss, downnotbuy, principal, winpercent):
+def run_customer(start, end, code_list, percent, stoploss, downnotbuy, principal, winpercent,middleadd):
     dirpath = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(downnotbuy) + '\\' + str(
         percent) + str(
-        stoploss) + '\\'+ start+end+'\\'
+        stoploss) + str(middleadd)+'\\'+ start+end+'\\'
     finishlist_path = dirpath + 'finishedlist.csv'
-    mkdir(dirpath)
-    create_finished_list(finishlist_path)
     mkdir(dirpath)
     create_finished_list(finishlist_path)
     for code in code_list:
@@ -1125,14 +1262,13 @@ def run_customer(start, end, code_list, percent, stoploss, downnotbuy, principal
         path = dirpath + code + '.csv'
         try:
             # if not os.path.exists(path):
-            first_run_customer(start,end,code, percent, stoploss, downnotbuy, principal)
+            first_run_customer(start,end,code, percent, stoploss, downnotbuy, principal,middleadd)
             # else:
             #     not_first_run_customer(start, end, code, percent, stoploss, downnotbuy, principal)
             print('正在回测' + code)
             trade_flag_list.to_csv(path, index=False)
-            save_back_tocsv(code, winpercent, True)
+            save_back_tocsv_customer(start,end,code, downnotbuy, percent,stoploss,middleadd)
 
-            # span_days = trade_flag_list.iloc[-220:]
             span_days = trade_flag_list
             stock_num = span_days.iloc[0]['stock_num']
             price = span_days.iloc[0]['close']
@@ -1161,7 +1297,7 @@ def run_customer(start, end, code_list, percent, stoploss, downnotbuy, principal
             continue
 
 
-def first_run_customer(start,end,code, percent, stoploss, downnotbuy, principal):
+def first_run_customer(start,end,code, percent, stoploss, downnotbuy, principal,middleadd):
     # today = datetime.today().strftime('%Y%m%d')
     # today = settoday()
     # offset = timedelta(days=365)
@@ -1174,33 +1310,10 @@ def first_run_customer(start,end,code, percent, stoploss, downnotbuy, principal)
     rest_days = trans_date[1:]
     first_day_insert(code, first_day, percent, downnotbuy, principal)
     for date in rest_days:
-        rest_days_insert(code, date, percent, stoploss, downnotbuy, principal)
+        # rest_days_insert(code, date, percent, stoploss, downnotbuy, principal)
+        rest_days_insert_with_middle(code, date, percent, stoploss, downnotbuy, principal,middleadd)
 
 
-def not_first_run_customer(start,end,code, percent, stoploss, downnotbuy, principal, customer_flag):
-    global trade_flag_list
-    if not customer_flag:
-        path = os.getcwd() + os.path.sep + 'multi' + '\\' + 'multi' + str(downnotbuy) + '\\' + str(percent) + str(
-            stoploss) + '\\' + code + '.csv'
-    else:
-        path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(downnotbuy) + '\\' + str(percent) + str(
-            stoploss) + '\\' + code + '.csv'
-    df = pd.read_csv(path, dtype={'pre_middle_date': str}, index_col=False)
-    trade_flag_list = df
-    # print(path)
-    last_date = str(df[df['code'] == code].tail(1)['date'].values[0])
-    # today = datetime.today().strftime('%Y%m%d')
-    today = settoday()
-    if last_date == today:
-        last_date = str(df[df['code'] == code].tail(2)['date'].values[0])
-        trade_flag_list = trade_flag_list.drop(trade_flag_list.tail(1).index)
-    set_info(last_date, today, code, 'realtime')
-    trans_date = used_date(last_date, today)[1:]
-    print(last_date, today, trans_date)
-    if len(trans_date) == 0:
-        return
-    for date in trans_date:
-        rest_days_insert(code, str(date), percent, stoploss, downnotbuy, principal)
 
 def set_info_customer(start, end, stock, type):
     """
@@ -1219,11 +1332,11 @@ def set_info_customer(start, end, stock, type):
     offset = timedelta(days=60)
     start = start - offset
     start_ymd = start.strftime('%Y%m%d')
-    # today = datetime.today().strftime('%Y%m%d')
-    # start_ymd = (datetime.today() - offset).strftime('%Y%m%d')
+    today = datetime.today().strftime('%Y%m%d')
+    today_ymd = (datetime.today() - offset).strftime('%Y%m%d')
     global_data = setdata(start_ymd, end, stock)
     clear()
-    if type == 'realtime' or type == 'back2all':
+    if end == today:
         global_data = insert_nowdata(global_data, stock)
     # boll线
     global_data['upper'], global_data['middle'], global_data['lower'] = ta.BBANDS(
@@ -1274,10 +1387,34 @@ def save_back_tocsv(code, winpercent, customer_flag):
         new_df = new_df.sort_values(by='trade_date', ascending=True, ignore_index=True)
         new_df.to_csv(csvpath)
 
-
+def save_back_tocsv_customer(start,end,code,downnotbuy,percent,stoploss,middleadd):
+    """
+    保存数据为csv文件
+    :param code:
+    :param winpercent:
+    :param customer_flag:
+    :return:
+    """
+    # csvpath = os.getcwd() + os.path.sep + 'saved_data' + '\\' + str(code).replace('.', '') + '.csv'
+    csvpath = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(downnotbuy) + '\\' + str(
+        percent) + str(
+        stoploss)+str(middleadd) + '\\' + start + end + '\\' + 'saved_data' + '\\' + str(code).replace('.', '') + '.csv'
+    dir = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(downnotbuy) + '\\' + str(
+        percent) + str(
+        stoploss) +str(middleadd)+ '\\' + start + end + '\\' + 'saved_data'
+    mkdir(dir)
+    if not os.path.exists(csvpath):
+        global_data.to_csv(csvpath)
+    else:
+        old_df = pd.read_csv(csvpath, dtype={'trade_date': str}, index_col=0)
+        new_gol = global_data.reset_index(drop=True)
+        new_df = pd.concat([old_df, new_gol.drop(labels=0)], ignore_index=True)
+        new_df = new_df.drop_duplicates(subset='trade_date', keep='last', ignore_index=True)
+        new_df = new_df.sort_values(by='trade_date', ascending=True, ignore_index=True)
+        new_df.to_csv(csvpath)
 
 #
-run_customer('20221010','20230119',['600073.SH', '000005.SZ'], 0.1, 0.2, True, 100000, 0.1)
-run(['000100.SZ','600073.SH'], 0.1, 0.2, True, 100000, 0.1, True)
+# run_customer('20221010','20230112',['600073.SH', '000005.SZ'], 0.1, 0.2, True, 100000, 0.1,False)
+# run(['000100.SZ','600073.SH'], 0.1, 0.2, True, 100000, 0.1, False,False)
 # run_customer('20220707', '20230211', ['600073.SH', '000005.SZ'], 0.1, 0.2, True, 100000, 0.1)
 # run_customer('20220707', '20230211', ['600073.SH'], 0.1, 0.2, True, 100000, 0.1)

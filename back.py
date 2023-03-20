@@ -88,17 +88,22 @@ class Ui_MainWindow(object):
         self.gridLayout.addWidget(self.downnotbuy, 7, 0, 1, 1)
         self.downnotbuy.setChecked(True)
 
+        self.middleadd = QtWidgets.QCheckBox(self.groupBox)
+        self.middleadd.setObjectName("middleadd")
+        self.gridLayout.addWidget(self.middleadd, 8, 0, 1, 1)
+        self.middleadd.setChecked(True)
+
         self.todaybuy = QtWidgets.QCheckBox(self.groupBox)
         self.todaybuy.setObjectName("todaybuy")
-        self.gridLayout.addWidget(self.todaybuy, 8, 0, 1, 1)
+        self.gridLayout.addWidget(self.todaybuy, 9, 0, 1, 1)
         # self.todaybuy.setChecked(True)
 
         self.start = QtWidgets.QPushButton(self.groupBox)
         self.start.setObjectName("start")
-        self.gridLayout.addWidget(self.start, 9, 0, 1, 1)
+        self.gridLayout.addWidget(self.start, 10, 0, 1, 1)
         self.refresh = QtWidgets.QPushButton(self.groupBox)
         self.refresh.setObjectName("refresh")
-        self.gridLayout.addWidget(self.refresh, 10, 0, 1, 1)
+        self.gridLayout.addWidget(self.refresh, 11, 0, 1, 1)
         self.stop = QtWidgets.QPushButton(self.groupBox)
         self.stop.setObjectName("stop")
         self.gridLayout.addWidget(self.stop, 12, 0, 1, 1)
@@ -182,6 +187,7 @@ class Ui_MainWindow(object):
         self.satisfaciedlist.horizontalHeader().sectionClicked.connect(self.sort_by_column)
         self.addholder.clicked.connect(self.add_to_holdlist)
         self.downnotbuy.clicked.connect(self.refresh_list)
+        self.middleadd.clicked.connect(self.refresh_list)
         self.addcustomer.clicked.connect(self.add_customer)
         self.todaybuy.clicked.connect(self.today_buy)
         self.retranslateUi(MainWindow)
@@ -195,6 +201,7 @@ class Ui_MainWindow(object):
         self.stop.setText(_translate("MainWindow", "停止"))
         self.refresh.setText(_translate("MainWindow", "刷新"))
         self.downnotbuy.setText(_translate("MainWindow", "MA下行不买入"))
+        self.middleadd.setText(_translate("MainWindow", "中线加减仓"))
         self.todaybuy.setText(_translate("MainWindow", "今日买入"))
         self.clear.setText(_translate("MainWindow", "清除"))
         self.groupBox_2.setTitle(_translate("MainWindow", "已回测"))
@@ -217,6 +224,7 @@ class Ui_MainWindow(object):
             downnotbuy_flag = self.downnotbuy.isChecked()
             customer_flag = False
             percent = float(self.winningpercent.text())
+            middleadd = self.middleadd.isChecked()
             df = pd.concat([pull_stock_name(), pull_fun_name()], ignore_index=True)
             df['symbol'] = df['ts_code'].apply(lambda x: x[0:6])
             df.to_csv('name.csv')
@@ -227,10 +235,10 @@ class Ui_MainWindow(object):
             splited_list = split_list_n_list(code_list, num)
             for item in splited_list:
                 process = multiprocessing.Process(target=run, args=(
-                    item, conditionrsi, stoploss,  downnotbuy_flag, principal,percent, customer_flag))
+                    item, conditionrsi, stoploss,  downnotbuy_flag, principal,percent, customer_flag,middleadd))
                 processlist.append(process)
                 process.start()
-            thread1 = threading.Thread(target=check_process_running, args=(processlist, self,conditionrsi,stoploss,customer_flag,downnotbuy_flag,))
+            thread1 = threading.Thread(target=check_process_running, args=(processlist, self,conditionrsi,stoploss,customer_flag,downnotbuy_flag,middleadd,))
             thread1.start()
         except Exception as e:
             traceback.print_exc()
@@ -247,11 +255,12 @@ class Ui_MainWindow(object):
         downnotbuy_flag = self.downnotbuy.isChecked()
         customer_flag = False
         today_buy = self.todaybuy.isChecked()
+        middleadd = self.middleadd.isChecked()
         try:
             if not today_buy:
-                finished_list = load_finished_code(conditionrsi, stoploss, downnotbuy_flag, customer_flag)
+                finished_list = load_finished_code(conditionrsi, stoploss, downnotbuy_flag, customer_flag,middleadd)
                 satisfied_code_win_name = load_winning_code(conditionrsi, stoploss, percent,
-                                                            downnotbuy_flag, customer_flag)
+                                                            downnotbuy_flag, customer_flag,middleadd)
                 self.finishedlist.clear()
                 self.satisfaciedlist.setRowCount(len(satisfied_code_win_name))
                 for finished_code in finished_list:
@@ -279,7 +288,7 @@ class Ui_MainWindow(object):
                 self.satisfaciedlist.sortItems(0, Qt.AscendingOrder)
             else:
                 row = 0
-                satisfied_code_win_name = load_today_buy(conditionrsi, stoploss, downnotbuy_flag)
+                satisfied_code_win_name = load_today_buy(conditionrsi, stoploss, downnotbuy_flag,middleadd)
                 self.satisfaciedlist.setRowCount(len(satisfied_code_win_name))
                 while row < len(satisfied_code_win_name):
                     win = QTableWidgetItem()
@@ -320,6 +329,7 @@ class Ui_MainWindow(object):
             stoploss = float(self.stoploss.text())
             downnotbuy_flag = self.downnotbuy.isChecked()
             customer_flag = False
+            middleadd = self.middleadd.isChecked()
             row = self.satisfaciedlist.selectedItems()[0].row()  # 获取选中文本所在的行
             # print("所选的内容所在的行为：", row)
             column = self.satisfaciedlist.selectedItems()[0].column()  # 获取选中文本所在的列
@@ -334,7 +344,7 @@ class Ui_MainWindow(object):
                 trade_info = pd.read_csv(data_path)[-365:] # k线日期跨度
                 trade_info['trade_date'] = pd.to_datetime(trade_info['trade_date'], format='%Y%m%d').apply(
                     lambda x: x.strftime('%Y-%m-%d'))
-                csv_path = os.getcwd() + os.path.sep + 'multi' + '\\' + 'multi' + str(downnotbuy_flag) + '\\' + str(conditionrsi) + str(stoploss) + '\\' + contents + '.csv'
+                csv_path = os.getcwd() + os.path.sep + 'multi' + '\\' + 'multi' + str(downnotbuy_flag) + '\\' + str(conditionrsi) + str(stoploss) + str(middleadd)+'\\' + contents + '.csv'
                 url = get_path('multiHtml') + contents.replace('.', '') + '.html'
                 details = pd.read_csv(csv_path).iloc[-220:] # 带有回测的k线长度
                 details = details[details['trade_type'] != 0]
@@ -496,8 +506,9 @@ class Ui_MainWindow(object):
             percent = float(self.winningpercent.text())
             downnotbuy_flag = self.downnotbuy.isChecked()
             customer_flag = False
+            middleadd = self.middleadd.isChecked()
             try:
-                satisfied_code_win_name = load_today_buy(conditionrsi, stoploss,downnotbuy_flag)
+                satisfied_code_win_name = load_today_buy(conditionrsi, stoploss,downnotbuy_flag,middleadd)
                 self.satisfaciedlist.setRowCount(len(satisfied_code_win_name))
                 while row < len(satisfied_code_win_name):
                     win = QTableWidgetItem()

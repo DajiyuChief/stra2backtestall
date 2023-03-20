@@ -24,11 +24,12 @@ from PyQt5.QtWidgets import QWidget, QTableWidgetItem, QAbstractItemView, QHeade
 from MessageBox import MessageBox, QuestionBox
 from backtest_all import run2_all
 from baseFun import get_stock_code, get_name, split_list_n_list, mkdir, kill_proc_tree, get_need_data, set_kline_data, \
-    create_customer_dir, find_proc_tree, check_process_running, hold_stock, create_holdstock_csv, write_to_csv
+    create_customer_dir, find_proc_tree, check_process_running, hold_stock, create_holdstock_csv, write_to_csv, \
+    check_process_running_customer
 from buyandsellui import BuyandSell
 from gol_all import get_value, set_value
-from load_csvdata import load_finished_code, load_winning_code
-from trade_strategy2 import run
+from load_csvdata import load_finished_code, load_winning_code, load_winning_code_customer
+from trade_strategy2 import run_customer, run
 
 
 class Ui_customer(object):
@@ -76,6 +77,12 @@ class Ui_customer(object):
         self.downnotbuy.setChecked(True)
         self.downnotbuy.setObjectName("downnotbuy")
         self.verticalLayout_2.addWidget(self.downnotbuy)
+
+        self.middleadd = QtWidgets.QCheckBox(self.groupBox)
+        self.middleadd.setChecked(True)
+        self.middleadd.setObjectName("downnotbuy")
+        self.verticalLayout_2.addWidget(self.middleadd)
+
         self.start = QtWidgets.QPushButton(self.groupBox)
         self.start.setObjectName("start")
         self.verticalLayout_2.addWidget(self.start)
@@ -169,6 +176,7 @@ class Ui_customer(object):
         self.outputtable.doubleClicked.connect(self.get_info)
         self.outputtable.horizontalHeader().sectionClicked.connect(self.sort_by_column)
         self.downnotbuy.clicked.connect(self.refresh_list)
+        self.middleadd.clicked.connect(self.refresh_list)
         self.todaytestbutton.clicked.connect(self.run_customer)
 
         self.startday.setPlaceholderText('开始日期')
@@ -193,6 +201,7 @@ class Ui_customer(object):
         customer.setWindowTitle(_translate("customer", "Form"))
         self.groupBox.setTitle(_translate("customer", "属性"))
         self.downnotbuy.setText(_translate("customer", "MA下行不买入"))
+        self.middleadd.setText(_translate("customer", "中线加减仓"))
         self.start.setText(_translate("customer", "开始"))
         self.refresh.setText(_translate("customer", "刷新"))
         self.stop.setText(_translate("customer", "停止"))
@@ -245,7 +254,8 @@ class Ui_customer(object):
 
     def delete_selected(self):
         try:
-            dirpath = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(self.downnotbuy.isChecked()) + '\\' + str(
+            dirpath = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(
+                self.downnotbuy.isChecked()) + '\\' + str(
                 self.conditionrsi.text()) + str(
                 self.stoploss.text()) + '\\'
             finishlist_path = dirpath + 'finishedlist.csv'
@@ -256,8 +266,8 @@ class Ui_customer(object):
             df = pd.read_csv(csv_path)
             for i in range(len(self.customerlist.selectedItems())):
                 row = self.customerlist.selectedItems()[i].row()  # 获取选中文本所在的行
-                code = self.customerlist.item(row,0).text()
-                data_path = dirpath + code +'.csv'
+                code = self.customerlist.item(row, 0).text()
+                data_path = dirpath + code + '.csv'
                 # column = self.customerlist.selectedItems()[i].column()  # 获取选中文本所在的列
                 # contents = self.customerlist.selectedItems()[i].text()  # 获取选中文本内容
                 drop_row.append(row)
@@ -270,7 +280,7 @@ class Ui_customer(object):
                     continue
             df = df.drop(drop_row)
             df.to_csv(csv_path, index=False, encoding="utf-8")
-            finish_csv.to_csv(finishlist_path,index=False)
+            finish_csv.to_csv(finishlist_path, index=False)
             self.refresh_customer_lsit()
             self.refresh_list()
         except Exception as e:
@@ -289,6 +299,7 @@ class Ui_customer(object):
             principal = int(self.principal.text())
             downnotbuy_flag = self.downnotbuy.isChecked()
             customer_flag = True
+            middleadd = self.middleadd.isChecked()
             list_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'custmoerlist.csv'
             df = pd.read_csv(list_path)
             # code_list = sorted(list(
@@ -297,12 +308,14 @@ class Ui_customer(object):
             code_list = df['code'].values.tolist()
             splited_list = split_list_n_list(code_list, num)
             for item in splited_list:
-                process = multiprocessing.Process(target=run, args=(
-                    item, conditionrsi, stoploss, downnotbuy_flag, principal, -10000, customer_flag))
+                process = multiprocessing.Process(target=run_customer, args=(startday, endday,
+                                                                             item, conditionrsi, stoploss,
+                                                                             downnotbuy_flag, principal, -10000,middleadd,
+                                                                             ))
                 processlist.append(process)
                 process.start()
-            thread1 = threading.Thread(target=check_process_running, args=(
-            processlist, self, conditionrsi, stoploss, customer_flag, downnotbuy_flag,))
+            thread1 = threading.Thread(target=check_process_running_customer, args=(
+                processlist, self, conditionrsi, stoploss, customer_flag, downnotbuy_flag,middleadd,startday,endday,))
             thread1.start()
         except Exception as e:
             message = MessageBox()
@@ -310,18 +323,19 @@ class Ui_customer(object):
 
     def refresh_list(self):
         row = 0
-        # startday = self.startday.text()
-        # endday = self.endday.text()
+        startday = self.startday.text()
+        endday = self.endday.text()
         conditionrsi = float(self.conditionrsi.text())
         stoploss = float(self.stoploss.text())
         percent = float(0.1)
         downnotbuy_flag = self.downnotbuy.isChecked()
         customer_flag = True
+        middleadd = self.middleadd.isChecked()
         self.refresh_customer_lsit()
         try:
 
-            satisfied_code_win_name = load_winning_code(conditionrsi, stoploss, percent,
-                                                        downnotbuy_flag, customer_flag)
+            satisfied_code_win_name = load_winning_code_customer(startday, endday, conditionrsi, stoploss, percent,
+                                                                 downnotbuy_flag, customer_flag,middleadd)
             self.outputtable.setRowCount(len(satisfied_code_win_name))
             while row < len(satisfied_code_win_name):
                 trade_type = satisfied_code_win_name[row][6]
@@ -356,25 +370,31 @@ class Ui_customer(object):
 
     def get_info(self):
         try:
-            # startday = self.startday.text()
-            # endday = self.endday.text()
+            startday = self.startday.text()
+            endday = self.endday.text()
             conditionrsi = float(self.conditionrsi.text())
             stoploss = float(self.stoploss.text())
             downnotbuy_flag = self.downnotbuy.isChecked()
             customer_flag = True
+            middleadd = self.middleadd.isChecked()
             row = self.outputtable.selectedItems()[0].row()  # 获取选中文本所在的行
             column = self.outputtable.selectedItems()[0].column()  # 获取选中文本所在的列
             contents = self.outputtable.selectedItems()[0].text()  # 获取选中文本内容
             if column == 0:
-                saved_dir_path = os.getcwd() + os.path.sep + '\\' + 'saved_data'
+                saved_dir_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(
+                    downnotbuy_flag) + '\\' + str(
+                    conditionrsi) + str(
+                    stoploss) + str(middleadd)+'\\' + startday + endday + '\\' + 'saved_data'
                 data_path = saved_dir_path + '\\' + contents.replace('.', '') + '.csv'
                 # trade_info = get_need_data(data_path, startday, endday, 60, 10)
-                trade_info = pd.read_csv(data_path)[-400:] # k线日期跨度
+                # trade_info = pd.read_csv(data_path)[-400:]  # k线日期跨度
+                trade_info = pd.read_csv(data_path)
                 trade_info['trade_date'] = pd.to_datetime(trade_info['trade_date'], format='%Y%m%d').apply(
                     lambda x: x.strftime('%Y-%m-%d'))
                 csv_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(
-                    downnotbuy_flag) + '\\' + str(conditionrsi) + str(stoploss) + '\\' + contents + '.csv'
-                details = pd.read_csv(csv_path).iloc[-220:] # 带有回测的k线长度
+                    downnotbuy_flag) + '\\' + str(conditionrsi) + str(stoploss) + str(middleadd) + '\\'  + startday + endday + '\\' + contents + '.csv'
+                # details = pd.read_csv(csv_path).iloc[-220:]  # 带有回测的k线长度
+                details = pd.read_csv(csv_path)
                 details = details[details['trade_type'] != 0]
                 date_list = details['date'].values.tolist()
                 buysell_list = details['trade_type'].values.tolist()
@@ -490,7 +510,6 @@ class Ui_customer(object):
                 clipboard.setText(text_str)  # 内容写入剪贴板
         except Exception as e:
             traceback.print_exc()
-
 
 
 class Customer(QWidget, Ui_customer):

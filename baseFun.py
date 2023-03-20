@@ -317,15 +317,15 @@ def connect_database(address, port, user, password):
     # cursor.execute("show databases")
 
 
-def check_process_running(process_list, window,rsi,stoploss,iscustomer,downnotbuy):
+def check_process_running(process_list, window,rsi,stoploss,iscustomer,downnotbuy,middleadd):
     if not iscustomer:
         dirpath = os.getcwd() + os.path.sep + 'multi' + '\\' + 'multi' + str(downnotbuy) + '\\' + str(rsi) + str(
-            stoploss) + '\\'
+            stoploss) + str(middleadd)+'\\'
         finishlist_path = dirpath + 'finishedlist.csv'
     else:
         dirpath = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(downnotbuy) + '\\' + str(
             rsi) + str(
-            stoploss) + '\\'
+            stoploss) + str(middleadd)+'\\'
         finishlist_path = dirpath + 'finishedlist.csv'
     while True:
         is_alive_flag = []
@@ -339,7 +339,28 @@ def check_process_running(process_list, window,rsi,stoploss,iscustomer,downnotbu
             finishlist_csv.to_csv(finishlist_path, index=False)
             window.refresh_list()
             break
-
+def check_process_running_customer(process_list, window,rsi,stoploss,iscustomer,downnotbuy,middleadd,start,end):
+    if not iscustomer:
+        dirpath = os.getcwd() + os.path.sep + 'multi' + '\\' + 'multi' + str(downnotbuy) + '\\' + str(rsi) + str(
+            stoploss) + str(middleadd)+'\\'
+        finishlist_path = dirpath + 'finishedlist.csv'
+    else:
+        dirpath = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(downnotbuy) + '\\' + str(
+            rsi) + str(
+            stoploss) + str(middleadd)+'\\'+start + end + '\\'
+        finishlist_path = dirpath + 'finishedlist.csv'
+    while True:
+        is_alive_flag = []
+        for item in process_list:
+            is_alive_flag.append(item.is_alive())
+        if True in is_alive_flag:
+            window.refresh_list()
+            time.sleep(2)
+        else:
+            finishlist_csv = pd.read_csv(finishlist_path).drop_duplicates(subset='code', keep='last')
+            finishlist_csv.to_csv(finishlist_path, index=False)
+            window.refresh_list()
+            break
 
 def get_path(dir):
     if dir == 'customerFalse':
@@ -359,6 +380,8 @@ def get_path(dir):
     if dir == 'multisave':
         return os.getcwd() + os.path.sep + 'multi' + '\\' + 'saved_data' + '\\'
 
+def get_differ_path(test_type,percent,stoploss,downnotbuy,middleadd):
+    pass
 
 def different_priority_stock():
     # 1 高位
