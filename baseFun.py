@@ -263,10 +263,6 @@ def create_customer_dir():
 def create_csv():
     list1_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'custmoerlist.csv'
     list2_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'holdlist.csv'
-    # list3_path = os.getcwd() + os.path.sep + 'multi' + '\\' + 'multi' + str(True) + '\\' + 'finishedlist.csv'
-    # list4_path = os.getcwd() + os.path.sep + 'multi' + '\\' + 'multi' + str(False) + '\\' + 'finishedlist.csv'
-    # list5_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(False) + '\\' + 'finishedlist.csv'
-    # list6_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(True) + '\\' + 'finishedlist.csv'
     header1 = ['code', 'name']
     header2 = ['code', 'name', 'first_buy_date', 'first_buy_price', 'current_cost_price', 'number_of_stock',
                'current_market_value', 'win_percnet', 'up_percent']
@@ -280,11 +276,6 @@ def create_csv():
         with open(list2_path, 'a', encoding='UTF8', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(header2)
-    # for path in [list3_path,list4_path,list5_path,list6_path]:
-    #     if not os.path.exists(path):
-    #         with open(path, 'a', encoding='UTF8', newline='') as f:
-    #             writer = csv.writer(f)
-    #             writer.writerow(header3)
     if not os.path.exists('priority.csv'):
         with open('priority.csv', 'a', encoding='UTF8', newline='') as f:
             writer = csv.writer(f)
@@ -325,7 +316,7 @@ def check_process_running(process_list, window,rsi,stoploss,iscustomer,downnotbu
     else:
         dirpath = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(downnotbuy) + '\\' + str(
             rsi) + str(
-            stoploss) + str(middleadd)+'\\'
+            stoploss) + str(middleadd)+'\\'+'realtime'+'\\'
         finishlist_path = dirpath + 'finishedlist.csv'
     while True:
         is_alive_flag = []
@@ -339,6 +330,8 @@ def check_process_running(process_list, window,rsi,stoploss,iscustomer,downnotbu
             finishlist_csv.to_csv(finishlist_path, index=False)
             window.refresh_list()
             break
+
+
 def check_process_running_customer(process_list, window,rsi,stoploss,iscustomer,downnotbuy,middleadd,start,end):
     if not iscustomer:
         dirpath = os.getcwd() + os.path.sep + 'multi' + '\\' + 'multi' + str(downnotbuy) + '\\' + str(rsi) + str(

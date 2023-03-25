@@ -16,7 +16,7 @@ SERVER_IP = '172.29.7.161'
 SERVER_PORT = 4321
 
 # cache config
-NO_CACHE = False
+NO_CACHE = True
 CACHE_DIR = os.path.dirname(__file__).replace('\\', '/') + '/cache/'
 
 if not NO_CACHE:

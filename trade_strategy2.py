@@ -1161,7 +1161,7 @@ def not_first_run(code, percent, stoploss, downnotbuy, principal, customer_flag,
             stoploss) + str(middleadd)+'\\' + code + '.csv'
     else:
         path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(downnotbuy) + '\\' + str(percent) + str(
-            stoploss) + str(middleadd)+'\\' + code + '.csv'
+            stoploss) + str(middleadd)+'\\' + 'realtime' + '\\'+ code + '.csv'
     df = pd.read_csv(path, dtype={'pre_middle_date': str}, index_col=False)
     trade_flag_list = df
     # print(path)

@@ -484,7 +484,7 @@ class Ui_Holder(object):
             traceback.print_exc()
             message = MessageBox()
             message.show_message(str(e))
-            print(e)
+            # print(e)
 
     def refresh_upper_percent(self):
         try:
@@ -518,49 +518,50 @@ class Ui_Holder(object):
             downnotbuy_flag = self.downnotbuy.isChecked()
             customer_flag = True
             csv_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(
-                downnotbuy_flag) + '\\' + conditionrsi + stoploss + '\\' + 'finishedlist.csv'
-            # result_csv = pd.read_csv(csv_path)
-            # row_count = self.holderlist.rowCount()
+                downnotbuy_flag) + '\\' + conditionrsi + stoploss + str(True)+'\\' + 'realtime' + '\\' + 'finishedlist.csv'
+            result_csv = pd.read_csv(csv_path)
+            row_count = self.holderlist.rowCount()
             # print(result_csv)
-            # for row in range(0,row_count):
-            #     print(row)
-            #     code = self.holderlist.item(row,0).text()
-            #     data_index = result_csv[result_csv['code'] == code].index.values.tolist()[0]
-            #     print(result_csv[result_csv['code'] == code].index.values.tolist())
-            #     trade_type = result_csv.iloc[data_index]['trade_type']
-            #     if 0 < trade_type < 3:
-            #         self.holderlist.item(row, 0).setBackground(QBrush(QColor(181, 61, 61)))
-            #     elif trade_type < 0 or trade_type == 3:
-            #         self.holderlist.item(row, 0).setBackground(QBrush(QColor(74, 194, 194)))
+            for row in range(0,row_count):
+                # print(row)
+                code = self.holderlist.item(row,0).text()
+                try:
+                    data_index = result_csv[result_csv['code'] == code].index.values.tolist()[0]
+                    # print(result_csv[result_csv['code'] == code].index.values.tolist())
+                    trade_type = result_csv.iloc[data_index]['trade_type']
+                    if 0 < trade_type < 3:
+                        self.holderlist.item(row, 0).setBackground(QBrush(QColor(181, 61, 61)))
+                    elif trade_type < 0 or trade_type == 3:
+                        self.holderlist.item(row, 0).setBackground(QBrush(QColor(74, 194, 194)))
+                except:
+                    continue
         except Exception as e:
             traceback.print_exc()
             message = MessageBox()
             message.show_message(str(e))
     def real_test(self):
-        pass
-        # try:
-        #     print(1)
-        #     processlist = []
-        #     num = 2
-        #     conditionrsi = float(self.rsi.text())
-        #     stoploss = float(self.stoploss.text())
-        #     downnotbuy_flag = self.downnotbuy.isChecked()
-        #     customer_flag = True
-        #     list_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'holdlist.csv'
-        #     df = pd.read_csv(list_path)
-        #     code_list = df['code'].values.tolist()
-        #     splited_list = split_list_n_list(code_list, num)
-        #     for item in splited_list:
-        #         process = multiprocessing.Process(target=run, args=(
-        #             item, conditionrsi, stoploss, downnotbuy_flag, 100000, -10000, customer_flag))
-        #         processlist.append(process)
-        #         process.start()
-        #     thread1 = threading.Thread(target=check_process_running, args=(
-        #     processlist, self, conditionrsi, stoploss, customer_flag, downnotbuy_flag,))
-        #     thread1.start()
-        # except Exception as e:
-        #     message = MessageBox()
-        #     message.show_message(str(e))
+        try:
+            processlist = []
+            num = 2
+            conditionrsi = float(self.rsi.text())
+            stoploss = float(self.stoploss.text())
+            downnotbuy_flag = self.downnotbuy.isChecked()
+            customer_flag = True
+            list_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'holdlist.csv'
+            df = pd.read_csv(list_path)
+            code_list = df['code'].values.tolist()
+            splited_list = split_list_n_list(code_list, num)
+            for item in splited_list:
+                process = multiprocessing.Process(target=run, args=(
+                    item, conditionrsi, stoploss, downnotbuy_flag, 100000, -10000, customer_flag,True))
+                processlist.append(process)
+                process.start()
+            thread1 = threading.Thread(target=check_process_running, args=(
+            processlist, self, conditionrsi, stoploss, customer_flag, downnotbuy_flag,True))
+            thread1.start()
+        except Exception as e:
+            message = MessageBox()
+            message.show_message(str(e))
 
 class HolderUI(QMainWindow, Ui_Holder):
     def __init__(self):

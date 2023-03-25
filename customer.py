@@ -177,7 +177,7 @@ class Ui_customer(object):
         self.outputtable.horizontalHeader().sectionClicked.connect(self.sort_by_column)
         self.downnotbuy.clicked.connect(self.refresh_list)
         self.middleadd.clicked.connect(self.refresh_list)
-        self.todaytestbutton.clicked.connect(self.run_customer)
+        self.todaytestbutton.clicked.connect(self.today_test)
 
         self.startday.setPlaceholderText('开始日期')
         self.endday.setPlaceholderText('结束日期')
@@ -321,6 +321,37 @@ class Ui_customer(object):
             message = MessageBox()
             message.show_message(str(e))
 
+
+    def today_test(self):
+        try:
+            processlist = []
+            num = int(self.processnum.text())
+            startday = self.startday.text()
+            endday = self.endday.text()
+            conditionrsi = float(self.conditionrsi.text())
+            stoploss = float(self.stoploss.text())
+            principal = int(self.principal.text())
+            downnotbuy_flag = self.downnotbuy.isChecked()
+            customer_flag = True
+            middleadd = self.middleadd.isChecked()
+            list_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'custmoerlist.csv'
+            df = pd.read_csv(list_path)
+            # code_list = sorted(list(
+            #     set(df['code'].values.tolist()) - set(
+            #         load_finished_code(conditionrsi, stoploss, downnotbuy_flag, customer_flag))))
+            code_list = df['code'].values.tolist()
+            splited_list = split_list_n_list(code_list, num)
+            for item in splited_list:
+                process = multiprocessing.Process(target=run, args=(
+                    item, conditionrsi, stoploss, downnotbuy_flag, 100000, -10000, customer_flag, True))
+                processlist.append(process)
+                process.start()
+            thread1 = threading.Thread(target=check_process_running, args=(
+                processlist, self, conditionrsi, stoploss, customer_flag, downnotbuy_flag, True))
+            thread1.start()
+        except Exception as e:
+            message = MessageBox()
+            message.show_message(str(e))
     def refresh_list(self):
         row = 0
         startday = self.startday.text()

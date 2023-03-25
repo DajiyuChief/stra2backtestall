@@ -43,7 +43,7 @@ class Ui_MainWindow(object):
         self.tabWidget.currentChanged['int'].connect(self.holder.refresh)
         self.tabWidget.currentChanged['int'].connect(self.backtest.refresh_list)
         self.tabWidget.currentChanged['int'].connect(self.customer.refresh_list)
-        self.holder.realtestbutton.clicked.connect(self.turn)
+        # self.holder.realtestbutton.clicked.connect(self.turn)
         # self.tabWidget.currentChanged[3].connect(self.holder.refresh)
 
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
