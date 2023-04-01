@@ -257,10 +257,10 @@ class Ui_customer(object):
             dirpath = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(
                 self.downnotbuy.isChecked()) + '\\' + str(
                 self.conditionrsi.text()) + str(
-                self.stoploss.text()) + '\\'
+                self.stoploss.text()) +str(self.middleadd.isChecked())+ '\\'+self.startday.text()+self.endday.text()+'\\'
             finishlist_path = dirpath + 'finishedlist.csv'
 
-            finish_csv = pd.read_csv(finishlist_path)
+            # finish_csv = pd.read_csv(finishlist_path)
             drop_row = []
             csv_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'custmoerlist.csv'
             df = pd.read_csv(csv_path)
@@ -271,16 +271,16 @@ class Ui_customer(object):
                 # column = self.customerlist.selectedItems()[i].column()  # 获取选中文本所在的列
                 # contents = self.customerlist.selectedItems()[i].text()  # 获取选中文本内容
                 drop_row.append(row)
-                try:
-                    index_in_finish = finish_csv[finish_csv['code'] == code].index.tolist()
-                    finish_csv = finish_csv.drop(index_in_finish)
-                    if os.path.exists(data_path):
-                        os.remove(data_path)
-                except:
-                    continue
+                # try:
+                #     index_in_finish = finish_csv[finish_csv['code'] == code].index.tolist()
+                #     finish_csv = finish_csv.drop(index_in_finish)
+                #     if os.path.exists(data_path):
+                #         os.remove(data_path)
+                # except:
+                #     continue
             df = df.drop(drop_row)
             df.to_csv(csv_path, index=False, encoding="utf-8")
-            finish_csv.to_csv(finishlist_path, index=False)
+            # finish_csv.to_csv(finishlist_path, index=False)
             self.refresh_customer_lsit()
             self.refresh_list()
         except Exception as e:
@@ -364,7 +364,6 @@ class Ui_customer(object):
         middleadd = self.middleadd.isChecked()
         self.refresh_customer_lsit()
         try:
-
             satisfied_code_win_name = load_winning_code_customer(startday, endday, conditionrsi, stoploss, percent,
                                                                  downnotbuy_flag, customer_flag,middleadd)
             self.outputtable.setRowCount(len(satisfied_code_win_name))
@@ -390,6 +389,8 @@ class Ui_customer(object):
         except Exception as e:
             message = MessageBox()
             message.show_message(str(e))
+
+
 
     def stop_run(self):
         me = os.getpid()
