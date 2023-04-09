@@ -15,7 +15,7 @@ import numpy as np
 import tushare as ts
 import pandas as pd
 import psutil
-import mysql.connector
+# import mysql.connector
 from kline import plot_kline
 
 pro = ts.pro_api('f558cbc6b24ed78c2104e209a8a8986b33ec66b7c55bcfa2f46bc108')
@@ -297,14 +297,17 @@ def create_finished_list(path):
 
 
 def connect_database(address, port, user, password):
-    mydb = mysql.connector.connect(
-        host=str(address),
-        port=int(port),
-        user=str(user),
-        passwd=str(password)
-    )
-    cursor = mydb.cursor()
-    return cursor
+    pass
+    # mydb = mysql.connector.connect(
+    #     host=str(address),
+    #     port=int(port),
+    #     user=str(user),
+    #     passwd=str(password)
+    # )
+    # cursor = mydb.cursor()
+    # return cursor
+
+
     # cursor.execute("show databases")
 
 
