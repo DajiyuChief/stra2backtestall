@@ -17,13 +17,20 @@ import pandas as pd
 import psutil
 # import mysql.connector
 from kline import plot_kline
+import talib as ta
+from datetime import timedelta
+
+# from datetime import datetime, timedelta
 
 pro = ts.pro_api('f558cbc6b24ed78c2104e209a8a8986b33ec66b7c55bcfa2f46bc108')
 quotation = easyquotation.use('sina')  # 新浪 ['sina'] 腾讯 ['tencent', 'qq']
 # quotation中close是昨日收盘价
 data = pro.query('trade_cal', start_date='20210101', end_date=datetime.date.today().strftime("%Y%m%d"), is_open='1')
+# print(data)
 date_list = list(data['cal_date'])[::-1]
 date_int_list = list(map(int, date_list))
+
+bankuai = pd.read_csv("name.csv")
 
 
 def save_trade_date():
@@ -36,6 +43,7 @@ def save_trade_date():
         writer = csv.writer(f)
         writer.writerow(date_int_list)
     return date_list, date_int_list
+
 
 def setdata(start_day, end_day, stock_code):
     """
@@ -56,6 +64,7 @@ def setdata(start_day, end_day, stock_code):
     df = df.sort_values(by='trade_date', ascending=True)
     return df
 
+
 def stock_code_convert(stock_code):
     """
     将代码从000001.SZ转换为sz000001
@@ -65,6 +74,7 @@ def stock_code_convert(stock_code):
     lst = stock_code.split('.')
     type = lst[1].lower()
     return type + lst[0]
+
 
 def split_list_n_list(origin_list, n):
     if len(origin_list) % n == 0:
@@ -116,31 +126,36 @@ def set_kline_data(code, details, trade_info, url):
     stoploss = []
     buy_high = []
     sell_high = []
+    add_high = []
+    minus_high = []
+    stopwin_high = []
+    stoploss_high = []
     name = get_name(code)
-    buy_date = details[details['trade_type'] == 1]['date'].values.tolist()
-    sell_date = details[details['trade_type'] == -1]['date'].values.tolist()
-    add_date = details[details['trade_type'] == 2]['date'].values.tolist()
-    minus_date = details[details['trade_type'] == -2]['date'].values.tolist()
-    stopwin_date = details[details['trade_type'] == 3]['date'].values.tolist()
-    stoploss_date = details[details['trade_type'] == -3]['date'].values.tolist()
-    buy_high = details[details['trade_type'] == 1]['high'].values.tolist()
-    sell_high = details[details['trade_type'] == -1]['high'].values.tolist()
-    add_high = details[details['trade_type'] == 2]['high'].values.tolist()
-    minus_high = details[details['trade_type'] == -2]['high'].values.tolist()
-    stopwin_high = details[details['trade_type'] == 3]['high'].values.tolist()
-    stoploss_high = details[details['trade_type'] == -3]['high'].values.tolist()
-    for item in buy_date:
-        buy.append(datetime.datetime.strptime(str(item), '%Y%m%d').strftime('%Y-%m-%d'))
-    for item in sell_date:
-        sell.append(datetime.datetime.strptime(str(item), '%Y%m%d').strftime('%Y-%m-%d'))
-    for item in add_date:
-        add.append(datetime.datetime.strptime(str(item), '%Y%m%d').strftime('%Y-%m-%d'))
-    for item in minus_date:
-        minus.append(datetime.datetime.strptime(str(item), '%Y%m%d').strftime('%Y-%m-%d'))
-    for item in stopwin_date:
-        stopwin.append(datetime.datetime.strptime(str(item), '%Y%m%d').strftime('%Y-%m-%d'))
-    for item in stoploss_date:
-        stoploss.append(datetime.datetime.strptime(str(item), '%Y%m%d').strftime('%Y-%m-%d'))
+    if (len(details) != 0):
+        buy_date = details[details['trade_type'] == 1]['date'].values.tolist()
+        sell_date = details[details['trade_type'] == -1]['date'].values.tolist()
+        add_date = details[details['trade_type'] == 2]['date'].values.tolist()
+        minus_date = details[details['trade_type'] == -2]['date'].values.tolist()
+        stopwin_date = details[details['trade_type'] == 3]['date'].values.tolist()
+        stoploss_date = details[details['trade_type'] == -3]['date'].values.tolist()
+        buy_high = details[details['trade_type'] == 1]['high'].values.tolist()
+        sell_high = details[details['trade_type'] == -1]['high'].values.tolist()
+        add_high = details[details['trade_type'] == 2]['high'].values.tolist()
+        minus_high = details[details['trade_type'] == -2]['high'].values.tolist()
+        stopwin_high = details[details['trade_type'] == 3]['high'].values.tolist()
+        stoploss_high = details[details['trade_type'] == -3]['high'].values.tolist()
+        for item in buy_date:
+            buy.append(datetime.datetime.strptime(str(item), '%Y%m%d').strftime('%Y-%m-%d'))
+        for item in sell_date:
+            sell.append(datetime.datetime.strptime(str(item), '%Y%m%d').strftime('%Y-%m-%d'))
+        for item in add_date:
+            add.append(datetime.datetime.strptime(str(item), '%Y%m%d').strftime('%Y-%m-%d'))
+        for item in minus_date:
+            minus.append(datetime.datetime.strptime(str(item), '%Y%m%d').strftime('%Y-%m-%d'))
+        for item in stopwin_date:
+            stopwin.append(datetime.datetime.strptime(str(item), '%Y%m%d').strftime('%Y-%m-%d'))
+        for item in stoploss_date:
+            stoploss.append(datetime.datetime.strptime(str(item), '%Y%m%d').strftime('%Y-%m-%d'))
 
     # grid = plot_kline_volume_signal(trade_info, name, [buy, buy_high, sell, sell_high])
     kline = plot_kline(trade_info, name,
@@ -164,14 +179,15 @@ def pull_stock_name():
         "offset": ""
     }, fields=[
         "ts_code",
-        "name"
+        "name",
+        "market"
     ])
     return df
 
 
 def pull_fun_name():
     df = pro.fund_basic(market='E')
-    df2 = df[['ts_code', 'name']]
+    df2 = df[['ts_code', 'name', 'market']]
     return df2
 
 
@@ -307,19 +323,18 @@ def connect_database(address, port, user, password):
     # cursor = mydb.cursor()
     # return cursor
 
-
     # cursor.execute("show databases")
 
 
-def check_process_running(process_list, window,rsi,stoploss,iscustomer,downnotbuy,middleadd):
+def check_process_running(process_list, window, rsi, stoploss, iscustomer, downnotbuy, middleadd):
     if not iscustomer:
         dirpath = os.getcwd() + os.path.sep + 'multi' + '\\' + 'multi' + str(downnotbuy) + '\\' + str(rsi) + str(
-            stoploss) + str(middleadd)+'\\'
+            stoploss) + str(middleadd) + '\\'
         finishlist_path = dirpath + 'finishedlist.csv'
     else:
         dirpath = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(downnotbuy) + '\\' + str(
             rsi) + str(
-            stoploss) + str(middleadd)+'\\'+'realtime'+'\\'
+            stoploss) + str(middleadd) + '\\' + 'realtime' + '\\'
         finishlist_path = dirpath + 'finishedlist.csv'
     while True:
         is_alive_flag = []
@@ -335,15 +350,15 @@ def check_process_running(process_list, window,rsi,stoploss,iscustomer,downnotbu
             break
 
 
-def check_process_running_customer(process_list, window,rsi,stoploss,iscustomer,downnotbuy,middleadd,start,end):
+def check_process_running_customer(process_list, window, rsi, stoploss, iscustomer, downnotbuy, middleadd, start, end):
     if not iscustomer:
         dirpath = os.getcwd() + os.path.sep + 'multi' + '\\' + 'multi' + str(downnotbuy) + '\\' + str(rsi) + str(
-            stoploss) + str(middleadd)+'\\'
+            stoploss) + str(middleadd) + '\\'
         finishlist_path = dirpath + 'finishedlist.csv'
     else:
         dirpath = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(downnotbuy) + '\\' + str(
             rsi) + str(
-            stoploss) + str(middleadd)+'\\'+start + end + '\\'
+            stoploss) + str(middleadd) + '\\' + start + end + '\\'
         finishlist_path = dirpath + 'finishedlist.csv'
     while True:
         is_alive_flag = []
@@ -357,6 +372,7 @@ def check_process_running_customer(process_list, window,rsi,stoploss,iscustomer,
             finishlist_csv.to_csv(finishlist_path, index=False)
             window.refresh_list()
             break
+
 
 def get_path(dir):
     if dir == 'customerFalse':
@@ -376,8 +392,10 @@ def get_path(dir):
     if dir == 'multisave':
         return os.getcwd() + os.path.sep + 'multi' + '\\' + 'saved_data' + '\\'
 
-def get_differ_path(test_type,percent,stoploss,downnotbuy,middleadd):
+
+def get_differ_path(test_type, percent, stoploss, downnotbuy, middleadd):
     pass
+
 
 def different_priority_stock():
     # 1 高位
@@ -393,7 +411,7 @@ def different_priority_stock():
         today_close = df['close'].values.tolist()[-1]
         if (today_close > 2 * min_price) or (today_close > 0.8 * max_price):
             priority = 1
-        print(code,max_price, min_price, today_close, priority)
+        print(code, max_price, min_price, today_close, priority)
         with open('priority.csv', 'a', encoding='UTF8', newline='') as f:
             writer = csv.writer(f)
             writer.writerow([code, priority])
@@ -408,24 +426,27 @@ def hold_stock(code):
     price = df_now_dic[0]['now']
     date = df_now_dic[0]['date']
     # print(price,date)
-    return [price,date]
+    return [price, date]
 
 
 def create_holddir():
     dir_path = os.getcwd() + os.path.sep + 'hold_dir'
     mkdir(dir_path)
 
+
 def create_holdstock_csv(code):
     dir_path = os.getcwd() + os.path.sep + 'hold_dir' + '\\'
-    csv_path = dir_path + code +'.csv'
-    header = ['trade_date','type','price','cost_price','now_num','now_principal','all_principal','cost_principal','win_percent']
+    csv_path = dir_path + code + '.csv'
+    header = ['trade_date', 'type', 'price', 'cost_price', 'now_num', 'now_principal', 'all_principal',
+              'cost_principal', 'win_percent']
     if not os.path.exists(csv_path):
         with open(csv_path, 'a', encoding='UTF8', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(header)
     return None
 
-def get_priority(priority_csv,code):
+
+def get_priority(priority_csv, code):
     """
     获取高低位股数据
     :param priority_csv:
@@ -438,17 +459,118 @@ def get_priority(priority_csv,code):
         priority = 2
     return priority
 
+
+def settoday():
+    from datetime import datetime, timedelta
+    time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    today = datetime.today().strftime('%Y%m%d')
+    offset = timedelta(days=1)
+    yes = (datetime.today() - offset).strftime('%Y%m%d')
+    nowtime = time[11:13]
+    nowminute = time[14:16]
+    if nowtime[0] == 0:
+        # 把时间截取一下以判断早中晚
+        # 如果nowtime前面带有0，比如08，把0去掉
+        # 如果nowtime第一位不是0，如20，不作处理
+        nowtime = nowtime[1]
+    if nowminute[0] == 0:
+        nowminute = nowminute[1]
+    if int(nowtime) < 9 or (int(nowtime) == 9 and int(nowminute) <= 30):
+        return yes
+    else:
+        return today
+
+
+def class_bankuai(code):
+    try:
+        var = bankuai[bankuai['ts_code'] == code].market.values[0]
+    except:
+        var = 'E'
+    if var == '主板' or '中小板' or 'E':
+        return 0.1
+    elif var == '创业板' or '科创板':
+        return 0.2
+    elif var == '北交所':
+        return 0.3
+    else:
+        return 0.1
+    # return bankuai[bankuai['ts_code'] == code].market.values[0]
+
+
+def getnewestdata(stock,save_dir):
+    stock_code = stock
+    offset = timedelta(days=400)
+    today = datetime.date.today().strftime('%Y%m%d')
+    start_ymd = (datetime.date.today() - offset).strftime('%Y%m%d')
+    global_data = setdata(start_ymd, today, stock)
+    global_data = insert_nowdata(global_data, stock)
+    global_data['upper'], global_data['middle'], global_data['lower'] = ta.BBANDS(
+        global_data.close.values,
+        timeperiod=20,
+        nbdevup=2,
+        nbdevdn=2,
+        matype=0)
+    global_data['upper'] = round(global_data['upper'], 2)
+    global_data['middle'] = round(global_data['middle'], 2)
+    global_data['lower'] = round(global_data['lower'], 2)
+    global_data['rsi'] = ta.RSI(global_data.close.values, timeperiod=6)
+    global_data['rsi'] = round(global_data['rsi'], 4)
+    global_data['rsi_var'] = global_data['rsi'].diff() / np.roll(global_data['rsi'], shift=1)
+    global_data['rsi_var'] = round(global_data['rsi_var'], 4)
+    global_data['low-lowboll'] = global_data['low'] - global_data['lower']
+    global_data['high-highboll'] = global_data['high'] - global_data['upper']
+    global_data['high-mid'] = global_data['high'] - global_data['middle']
+    global_data['mid-low'] = global_data['middle'] - global_data['low']
+    global_data['close-open'] = global_data['close'] - global_data['open']
+    global_data['yes_close-mid'] = global_data['pre_close'] - global_data['middle']
+    global_data['mid-close'] = global_data['middle'] - global_data['close']
+    global_data['ma5'] = round(global_data['close'].rolling(5).mean(), 2)
+    global_data['ma10'] = round(global_data['close'].rolling(10).mean(), 2)
+    global_data['ma20'] = round(global_data['close'].rolling(20).mean(), 2)
+    global_data['ma30'] = round(global_data['close'].rolling(30).mean(), 2)
+    path = save_dir + '\\' + str(stock).replace('.', '') + '.csv'
+    global_data.to_csv(path)
+
+
+def insert_nowdata(global_data, stockcode):
+    """
+    获取今日数据,插入全局数据
+    :param global_data: 不包含当日数据的回测数据
+    :param stockcode: 股票代码
+    :return:
+    """
+    try:
+        df_now = quotation.real(stock_code_convert(stockcode))
+    except:
+        return
+    df_now_dic = list(df_now.values())
+    today_split = df_now_dic[0]['date'].split('-')
+    today = today_split[0] + today_split[1] + today_split[2]
+    glo_date = global_data['trade_date'].values.tolist()
+    if today not in glo_date:
+        ts_code = stockcode
+        trade_date = today
+        open = float(df_now_dic[0]['open'])
+        high = float(df_now_dic[0]['high'])
+        low = float(df_now_dic[0]['low'])
+        close = float(df_now_dic[0]['now'])
+        pre_close = float(df_now_dic[0]['close'])
+        change = close - pre_close
+        pct_chg = round(change * 100 / pre_close, 4)
+        vol = float(df_now_dic[0]['turnover']) / 100
+        amount = float(df_now_dic[0]['volume']) / 1000
+        today_info = {'ts_code': ts_code, 'trade_date': trade_date, 'open': open, 'high': high, 'low': low,
+                      'close': close, 'pre_close': pre_close, 'change': change, 'pct_chg': pct_chg, 'vol': vol,
+                      'amount': amount}
+        global_data = global_data.append(today_info, ignore_index=True)
+    return global_data
+
+
 mkdir(os.getcwd() + os.path.sep + 'customer')
 mkdir(os.getcwd() + os.path.sep + 'saved_data')
 create_all_dir()
 create_customer_dir()
 create_csv()
 create_holddir()
-# save_trade_date()
-# find_real_start_end('20220701', 20230119)
 
-# connect_database('23.94.43.9',3306,'root','qwer12345')
-# different_priority_stock()
-# hold_stock('601012.SH')
-
-
+# print(class_bankuai('600073.SH'))

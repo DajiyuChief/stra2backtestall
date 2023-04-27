@@ -15,14 +15,15 @@ import pandas as pd
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QUrl
 from PyQt5.QtGui import QBrush, QColor
 from PyQt5.QtWidgets import QMainWindow, QHeaderView, QTableWidgetItem, QItemDelegate
 
 from MessageBox import MessageBox
+from buyandsellui import BuyandSell
 from gol_all import set_value, get_value
 from baseFun import get_name, get_stock_code, hold_stock, create_holdstock_csv, write_to_csv, split_list_n_list, \
-    check_process_running
+    check_process_running, set_kline_data, getnewestdata
 from load_csvdata import load_winning_code
 from stockinfo import StockInfoUI
 from trade_strategy2 import run
@@ -163,6 +164,7 @@ class Ui_Holder(object):
         self.holderlist.horizontalHeader().sectionClicked.connect(self.sort_by_column)
         self.buybutton.clicked.connect(self.buy)
         self.realtestbutton.clicked.connect(self.real_test)
+        self.holderlist.doubleClicked.connect(self.doubleclick)
         # self.holderlist.currentCellChanged.connect((self.check))
 
         self.path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'holdlist.csv'
@@ -562,6 +564,34 @@ class Ui_Holder(object):
         except Exception as e:
             message = MessageBox()
             message.show_message(str(e))
+
+
+    def doubleclick(self):
+        try:
+            row = self.holderlist.selectedItems()[0].row()  # 获取选中文本所在的行
+            column = self.holderlist.selectedItems()[0].column()  # 获取选中文本所在的列
+            contents = self.holderlist.selectedItems()[0].text()  # 获取选中文本内容
+            if column == 0:
+
+                saved_dir_path = os.getcwd() + os.path.sep + 'saved_data'
+                getnewestdata(contents,saved_dir_path)
+                data_path = saved_dir_path + '\\' + contents.replace('.', '') + '.csv'
+                trade_info = pd.read_csv(data_path)
+                trade_info['trade_date'] = pd.to_datetime(trade_info['trade_date'], format='%Y%m%d').apply(
+                    lambda x: x.strftime('%Y-%m-%d'))
+                trade_info = trade_info.set_index('trade_date')
+                url = os.getcwd() + os.path.sep + 'customer' + '\\' + 'generate_html' + '\\' + contents.replace('.','') + '.html'
+                set_kline_data(contents, [], trade_info, url)
+                self.buyandsell = BuyandSell()
+                # self.buyandsell.
+                self.buyandsell.tableWidget.hide()
+                self.buyandsell.browser.load(QUrl.fromLocalFile(url))
+                self.buyandsell.browser.resize(1300,850)
+                self.buyandsell.show()
+        except Exception as e:
+            message = MessageBox()
+            message.show_message(str(e))
+            print(e)
 
 class HolderUI(QMainWindow, Ui_Holder):
     def __init__(self):

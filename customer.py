@@ -25,7 +25,7 @@ from MessageBox import MessageBox, QuestionBox
 from backtest_all import run2_all
 from baseFun import get_stock_code, get_name, split_list_n_list, mkdir, kill_proc_tree, get_need_data, set_kline_data, \
     create_customer_dir, find_proc_tree, check_process_running, hold_stock, create_holdstock_csv, write_to_csv, \
-    check_process_running_customer
+    check_process_running_customer,settoday
 from buyandsellui import BuyandSell
 from gol_all import get_value, set_value
 from load_csvdata import load_finished_code, load_winning_code, load_winning_code_customer

@@ -20,8 +20,8 @@ class Ui_buyandsell(object):
     def setupUi(self, buyandsell):
         buyandsell.setObjectName("buyandsell")
         buyandsell.resize(1400, 850)
-        buyandsell.setMinimumSize(QtCore.QSize(1400, 850))
-        buyandsell.setMaximumSize(QtCore.QSize(1400, 850))
+        buyandsell.setMinimumSize(QtCore.QSize(1400, 600))
+        buyandsell.setMaximumSize(QtCore.QSize(1400, 600))
         self.centralwidget = QtWidgets.QWidget(buyandsell)
         self.centralwidget.setObjectName("centralwidget")
         self.tableWidget = QtWidgets.QTableWidget(self.centralwidget)
@@ -69,11 +69,12 @@ class BuyandSell(QMainWindow, Ui_buyandsell):
         self.setCentralWidget(self.central_widget)
         lay = QGridLayout(self.central_widget)
         lay.addWidget(self.browser, 1, 0,1,2)
-        lay.addWidget(self.tableWidget, 0, 0,1,2)
-        lay.setColumnStretch(0, 1)
-        lay.setColumnStretch(1, 2)
-        lay.setRowStretch(0, 1)
-        lay.setRowStretch(1, 3)
+        # 需要表格把下面的取消注释
+        # lay.addWidget(self.tableWidget, 0, 0,1,2)
+        # lay.setColumnStretch(0, 1)
+        # lay.setColumnStretch(1, 2)
+        # lay.setRowStretch(0, 1)
+        # lay.setRowStretch(1, 3)
 
 
 if __name__ == '__main__':

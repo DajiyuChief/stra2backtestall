@@ -27,7 +27,7 @@ from client import get_data
 from chinese_calendar import is_holiday
 import csv
 
-from baseFun import find_real_start_end, get_path, write_to_csv, mkdir, create_finished_list, get_name, get_priority
+from baseFun import find_real_start_end, get_path, write_to_csv, mkdir, create_finished_list, get_name, get_priority,class_bankuai
 
 pro = ts.pro_api('f558cbc6b24ed78c2104e209a8a8986b33ec66b7c55bcfa2f46bc108')
 quotation = easyquotation.use('sina')  # 新浪 ['sina'] 腾讯 ['tencent', 'qq']
@@ -75,6 +75,7 @@ def set_info(start, end, stock, type):
     # start = start - offset
     # start_ymd = start.strftime('%Y%m%d')
     today = datetime.today().strftime('%Y%m%d')
+
     start_ymd = (datetime.today() - offset).strftime('%Y%m%d')
     global_data = setdata(start_ymd, today, stock)
     clear()
@@ -108,6 +109,7 @@ def set_info(start, end, stock, type):
     calculate_list = global_data['trade_date'].values.tolist()
     # print(calculate_list)
     # print(global_data)
+    # global_data.to_csv('test.csv')
     return global_data
 
 
@@ -303,7 +305,8 @@ def used_date(start, end):
     trade_date = find_real_start_end(start, end)
     transaction_date = trade_date
     # print(trade_date)
-    return trade_date
+    # return trade_date
+    return global_data['trade_date'].values.tolist()
 
 
 def used_date_multi(start, end):
@@ -328,6 +331,7 @@ def get_price(date, type):
     :return: 获取到的价格
     """
     if type == 'close':
+        # print(date)
         return global_data.loc[global_data['trade_date'] == date].close.values[0]
     elif type == 'open':
         return global_data.loc[global_data['trade_date'] == date].open.values[0]
@@ -434,6 +438,22 @@ def sell_touch_boll_high(date):
 #     if close > midboll:
 #         return 0
 #     return -1
+
+def is_updownstop(date,code):
+    """
+    涨停跌停
+    :param date:
+    :param code:
+    :return: 1涨停 -1跌停 0无
+    """
+    percent = class_bankuai(code)
+    todaypercent = global_data.loc[global_data['trade_date'] == date].pct_chg.values[0]
+    if todaypercent > 0 and todaypercent>percent:
+        return 1
+    elif todaypercent<0 and todaypercent < -percent:
+        return -1
+    else:
+        return 0
 
 
 def touch_middle(date):
@@ -594,6 +614,7 @@ def high_to_low(pre_middle_date, date):
     :param date:
     :return:
     """
+    pre_middle_date = date_calculate(date, -1)
     # pre_close = get_price(pre_middle_date, 'close')
     # today_close = get_price(date, 'close')
     pre_low = get_price(pre_middle_date, 'low')
@@ -616,11 +637,14 @@ def low_to_high(pre_middle_date, date):
     :return:
     """
     # print(pre_middle_date)
+    # 改为与前一天比较
+    pre_middle_date = date_calculate(date, -1)
     pre_high = get_price(pre_middle_date, 'high')
     today_high = get_price(date, 'high')
     pre_mid = touch_middle(pre_middle_date)
     today_mid = touch_middle(date)
     # if high_open(date) or (both_sp(date) == 1):
+    # print(pre_middle_date,date,pre_mid,today_mid,pre_high,today_high)
     if (both_sp(date) == 1):  # 取消高开条件
         return True
     if (pre_mid == -1) and (pre_mid != today_mid) and (pre_high < today_high):
@@ -628,7 +652,7 @@ def low_to_high(pre_middle_date, date):
     return False
 
 
-def settoday():
+def settoday(code):
     """
     设置今日日期
     :return: 字符串日期
@@ -652,6 +676,19 @@ def settoday():
         return today
 
 
+# def settoday(stockcode):
+#     try:
+#         df_now = quotation.real(stock_code_convert(stockcode))
+#         # print(df_now)
+#     except:
+#         return settodaybak()
+#     df_now_dic = list(df_now.values())
+#     today_split = df_now_dic[0]['date'].split('-')
+#     today = today_split[0] + today_split[1] + today_split[2]
+#     # print(today)
+#     return today
+
+
 def first_mid(date):
     """
     检测第一次中线
@@ -665,12 +702,12 @@ def first_mid(date):
     yes_high = get_price(yes, 'high')
     today_low = get_price(date, 'low')
     yes_low = get_price(yes, 'low')
-    today_close = get_price(date,'close')
-    today_open = get_price(date,'open')
+    today_close = get_price(date, 'close')
+    today_open = get_price(date, 'open')
     if today_mid != yes_mid:
-        if (today_mid == 1) and (yes_high < today_high) and today_close>today_open:
+        if (today_mid == 1) and (yes_high < today_high) and today_close > today_open:
             return 1
-        elif (today_mid == -1) and (yes_low > today_low) and today_close<today_open:
+        elif (today_mid == -1) and (yes_low > today_low) and today_close < today_open:
             return -1
     return 0
 
@@ -681,6 +718,7 @@ def delay_buy_mid(lastday, date):
     :param date:
     :return:
     """
+    lastday = date_calculate(date, -1)  # 改为与前一天比较
     close = get_price(date, 'close')
     last_close = get_price(lastday, 'close')
     today_high = get_price(date, 'high')
@@ -755,9 +793,11 @@ def rest_days_mid(date):
     last_flag = trade_flag_list.tail(1)
     last_middle_step = last_flag['mid_step'].values[0]
     delay_buy = last_flag['delay_buy'].values[0]
-    is_down = check_isdown(date,True)
+    is_down = check_isdown(date, True)
     rsi_var = RSI_vary(date)
     mid_step = last_middle_step
+    # code = last_flag['code'].values[0]
+    # zhangdieting = is_updownstop(date,code)
     if last_middle_step == 0:
         mid_step = 0
         pre_middle_date = ''
@@ -775,7 +815,7 @@ def rest_days_mid(date):
             elif (both_sp_flag == 1) or (first_mid_flag == 1):
                 if is_down:
                     mid_step = 0
-                    pre_middle_date = date_calculate(date,-1)
+                    pre_middle_date = date_calculate(date, -1)
                     delay_buy = 1
                 else:
                     mid_step = 1
@@ -784,7 +824,7 @@ def rest_days_mid(date):
         elif delay_buy == 1:
             last_day = last_flag['pre_middle_date'].values[0]
             today_mid = getBoll(date)[1]
-            today_close = get_price(date,'close')
+            today_close = get_price(date, 'close')
             if today_mid < today_close:
                 delay_buy = 0
                 mid_step = 0
@@ -816,6 +856,7 @@ def rest_days_mid(date):
             pre_middle_date = ''
             first_mid_flag = first_mid(date)
             both_sp_flag = both_sp(date)
+            # print(date,first_mid_flag,both_sp_flag)
             if delay_buy == 1:
                 last_day = last_flag['pre_middle_date'].values[0]
                 today_mid = getBoll(date)[1]
@@ -841,7 +882,7 @@ def rest_days_mid(date):
                     if is_down:
                         delay_buy = 1
                         mid_step = 0
-                        pre_middle_date = date_calculate(date,-1)
+                        pre_middle_date = date_calculate(date, -1)
                     else:
                         delay_buy = 0
                         mid_step = 1
@@ -896,11 +937,13 @@ def rest_days_mid(date):
                     pre_middle_date = last_day
                 else:
                     # print(date,pre_middle_date)
-                    if low_to_high(pre_middle_date, date) and (abs(rsi_var) >= 0.1 * pow(1.5, int(-1 * last_middle_step) - 1)):
+                    # print(date,low_to_high(pre_middle_date, date),(abs(rsi_var) >= 0.1 * pow(1.5, int(-1 * last_middle_step) - 1)))
+                    if low_to_high(pre_middle_date, date) and (
+                            abs(rsi_var) >= 0.1 * pow(1.5, int(-1 * last_middle_step) - 1)):
                         delay_buy = 0
                         mid_step = -(last_middle_step - 1)
                         pre_middle_date = date
-    return mid_step, pre_middle_date,delay_buy
+    return mid_step, pre_middle_date, delay_buy
 
 
 def rest_days_sp_bolls(date):
@@ -911,6 +954,7 @@ def rest_days_sp_bolls(date):
     """
     trans_flag = 0
     rsi = getRSI(date)
+    rsi_var = RSI_vary(date)
     last_flag = trade_flag_list.tail(1)
     last_sp_boll_days = last_flag['sp_boll_days'].values[0]
     sp_buy_bolls_flag = buy_sp(date)
@@ -935,7 +979,10 @@ def rest_days_sp_bolls(date):
         elif sp_buy_bolls_flag:
             sp_boll_days = 1
         else:
-            sp_boll_days = 0
+            if sp_sell_boll_flag:
+                sp_boll_days = -1
+            else:
+                sp_boll_days = 0
     # elif -3 < last_sp_boll_days < 0 and (close < mid_boll):
     elif last_sp_boll_days == - 1:
         if close < mid_boll and low > low_boll:
@@ -943,31 +990,45 @@ def rest_days_sp_bolls(date):
         elif sp_sell_boll_flag:
             sp_boll_days = -1
         else:
-            sp_boll_days = 0
+            if sp_buy_bolls_flag:
+                sp_boll_days = 1
+            else:
+                sp_boll_days = 0
     # elif last_sp_boll_days >= 3 and (close > mid_boll):
     elif last_sp_boll_days >= 2:
         if sp_buy_bolls_flag:
-            if rsi < 80 and (close > open) and (close > mid_boll):
+            print(date, rsi_var)
+            if rsi < 80 and (close > open) and (close > mid_boll) and rsi_var >= 0.15:
                 trans_flag = 1
                 sp_boll_days = 0
             else:
-                sp_boll_days = 1
+                # 改成递延
+                # sp_boll_days = 1
+                sp_boll_days = last_sp_boll_days
         elif (close > mid_boll) and high < high_boll:
             sp_boll_days = last_sp_boll_days + 1
         else:
-            sp_boll_days = 0
+            if sp_sell_boll_flag:
+                sp_boll_days = -1
+            else:
+                sp_boll_days = 0
     # elif last_sp_boll_days <= -3 and (close < mid_boll):
     elif last_sp_boll_days <= -2:
         if sp_sell_boll_flag:
-            if rsi > 20 and (close < open) and (close < mid_boll):
+            if rsi > 20 and (close < open) and (close < mid_boll) and rsi_var <= -0.15:
                 trans_flag = -1
                 sp_boll_days = 0
             else:
-                sp_boll_days = -1
+                # 改成递延
+                # sp_boll_days = -1
+                sp_boll_days = last_sp_boll_days
         elif close < mid_boll and low > low_boll:
             sp_boll_days = last_sp_boll_days - 1
         else:
-            sp_boll_days = 0
+            if sp_buy_bolls_flag:
+                sp_boll_days = 1
+            else:
+                sp_boll_days = 0
     return trans_flag, sp_boll_days
 
 
@@ -1128,6 +1189,7 @@ def rest_days_insert(code, date, percent, stoploss, downnotbuy, principal):
         #     delay_buy = False
         #     print(date, '买入')
         if can_common_boll_buy or (mid_step > 0) or (sp_boll_flag == 1):
+            print(date, '买入', can_common_boll_buy, (mid_step > 0), (sp_boll_flag == 1), mid_step, pre_mid_step)
             can_buy = True
         if can_buy:
             if isdown:
@@ -1140,7 +1202,7 @@ def rest_days_insert(code, date, percent, stoploss, downnotbuy, principal):
                 stock_num = principal // close
                 principal = principal - stock_num * close
                 delay_buy = False
-                print(date, '买入', can_common_boll_buy, (mid_step > 0), (sp_boll_flag == 1),mid_step,pre_mid_step)
+                # print(date, '买入', can_common_boll_buy, (mid_step > 0), (sp_boll_flag == 1),mid_step,pre_mid_step)
     elif now_buy_sell == -1:
         max_price = max(close, last_flag['max_price'].values[0])
         if (close < (1 - stoploss) * max_price) or stop_win(date) or can_common_boll_sell or (sp_boll_flag == -1):
@@ -1231,29 +1293,22 @@ def rest_days_insert_with_middle(code, date, percent, stoploss, downnotbuy, prin
     pre_mid_step = last_flag['mid_step'].values[0]
     pre_middle_date = rest_days_mid(date)[1]
 
+    zhangdieting = is_updownstop(date,code)
     # print(date, "xiaxing", isdown)
 
     if now_buy_sell == 1:
-        # 取消延迟买
-        # if delay_buy and not (
-        #         (close < (1 - stoploss) * max_price) or stop_win(date) or can_common_boll_sell or (
-        #         sp_boll_flag == -1)) and not isdown:
-        #     max_price = close
-        #     trade_type = 1
-        #     now_buy_sell = -1
-        #     stock_num = principal // close
-        #     principal = principal - stock_num * close
-        #     delay_buy = False
-        #     print(date, '买入')
-        if can_common_boll_buy or (mid_step > pre_mid_step) or (sp_boll_flag == 1):
+        if can_common_boll_buy or (mid_step > 0 and mid_step != pre_mid_step) or (sp_boll_flag == 1):
             can_buy = True
         if can_buy:
-            if isdown:
+            if isdown or zhangdieting == 1:
                 if can_common_boll_buy:
                     common_buy_boll_days = last_common_buy_boll_days
                 if sp_boll_days == 1:
                     sp_boll_days = last_sp_boll_days
                 if mid_step > 0:
+                    if zhangdieting == 1:
+                        mid_step = pre_mid_step
+                        pre_middle_date = last_flag['pre_middle_date'].values[0]
                     # 未完成中线条件的延迟买
                     pass
                 # delay_buy = True
@@ -1265,22 +1320,27 @@ def rest_days_insert_with_middle(code, date, percent, stoploss, downnotbuy, prin
                 principal = principal - stock_num * close
                 # delay_buy = False
                 delay_buy = 0
-                print(date, '买入', can_common_boll_buy, (mid_step > 0), (sp_boll_flag == 1),mid_step,pre_mid_step)
+                print(date, '买入', can_common_boll_buy, (mid_step > 0), (sp_boll_flag == 1), mid_step, pre_mid_step,
+                      isdown)
     elif now_buy_sell == -1:
         max_price = max(close, last_flag['max_price'].values[0])
+        # print(date,can_common_boll_sell)
         if (close < (1 - stoploss) * max_price) or stop_win(date) or can_common_boll_sell or (sp_boll_flag == -1):
-            if (close < (1 - stoploss) * max_price):
-                trade_type = -3
-                print(date, '止损')
-            elif stop_win(date):
-                trade_type = 3
-                print(date, '止盈')
+            if zhangdieting == -1:
+                pass
             else:
-                trade_type = -1
-                print(date, '卖出')
-            now_buy_sell = 1
-            principal = principal + stock_num * close
-            stock_num = 0
+                if (close < (1 - stoploss) * max_price):
+                    trade_type = -3
+                    print(date, '止损')
+                elif stop_win(date):
+                    trade_type = 3
+                    print(date, '止盈')
+                else:
+                    trade_type = -1
+                    print(date, '卖出')
+                now_buy_sell = 1
+                principal = principal + stock_num * close
+                stock_num = 0
         elif stock_num > 0 and 0 < low_rsi != add_flag and add_flag < 3:
             max_price = close
             trade_type = 2
@@ -1307,17 +1367,21 @@ def rest_days_insert_with_middle(code, date, percent, stoploss, downnotbuy, prin
                 print(date, '加仓')
 
         elif stock_num > 0 and mid_step < 0 and mid_step != pre_mid_step:
-            if middleadd:
-                trade_type = -2
-                principal = (stock_num // 2) * close + principal
-                stock_num = stock_num // 2
-                print(date, '减仓', 1)
+            if zhangdieting == -1:
+                mid_step = pre_mid_step
+                pre_middle_date = last_flag['pre_middle_date'].values[0]
             else:
-                now_buy_sell = 1
-                trade_type = -1
-                principal = stock_num * close + principal
-                stock_num = 0
-                print(date, '卖出', 1)
+                if middleadd:
+                    trade_type = -2
+                    principal = (stock_num // 2) * close + principal
+                    stock_num = stock_num // 2
+                    print(date, '减仓', 1)
+                else:
+                    now_buy_sell = 1
+                    trade_type = -1
+                    principal = stock_num * close + principal
+                    stock_num = 0
+                    print(date, '卖出', 1)
     flag = [code, date, close, high, low, max_price, rsi, rsi_var, trade_type, now_buy_sell, pre_middle_date,
             mid_step,
             common_buy_boll_days, common_sell_boll_days, sp_boll_days, principal, stock_num, add_flag,
@@ -1328,17 +1392,17 @@ def rest_days_insert_with_middle(code, date, percent, stoploss, downnotbuy, prin
 
 def first_run(code, percent, stoploss, downnotbuy, principal, middleadd):
     # today = datetime.today().strftime('%Y%m%d')
-    today = settoday()
+    today = settoday(code)
     offset = timedelta(days=365)
     # start = (datetime.today() - offset).strftime('%Y%m%d')
-    start = (datetime.strptime(settoday(), "%Y%m%d") - offset).strftime('%Y%m%d')
+    start = (datetime.strptime(settoday(code), "%Y%m%d") - offset).strftime('%Y%m%d')
 
     set_info(today, today, code, 'realtime')
 
     # set_info_multi(code)
     trans_date = used_date(start, today)
-    first_day = trans_date[0]
-    rest_days = trans_date[1:]
+    first_day = trans_date[30]
+    rest_days = trans_date[31:]
     first_day_insert(code, first_day, percent, downnotbuy, principal)
     for date in rest_days:
         # rest_days_insert(code, date, percent, stoploss, downnotbuy, principal)
@@ -1359,7 +1423,7 @@ def not_first_run(code, percent, stoploss, downnotbuy, principal, customer_flag,
     # print(path)
     last_date = str(df[df['code'] == code].tail(1)['date'].values[0])
     # today = datetime.today().strftime('%Y%m%d')
-    today = settoday()
+    today = settoday(code)
     # print(today)
     if last_date == today:
         last_date = str(df[df['code'] == code].tail(2)['date'].values[0])
@@ -1453,10 +1517,11 @@ def run_customer(start, end, code_list, percent, stoploss, downnotbuy, principal
         path = dirpath + code + '.csv'
         try:
             # if not os.path.exists(path):
+            print('正在回测' + code)
             first_run_customer(start, end, code, percent, stoploss, downnotbuy, principal, middleadd)
             # else:
             #     not_first_run_customer(start, end, code, percent, stoploss, downnotbuy, principal)
-            print('正在回测' + code)
+
             trade_flag_list.to_csv(path, index=False)
             save_back_tocsv_customer(start, end, code, downnotbuy, percent, stoploss, middleadd)
 
@@ -1497,8 +1562,8 @@ def first_run_customer(start, end, code, percent, stoploss, downnotbuy, principa
     set_info_customer(start, end, code, 'realtime')
     trans_date = used_date(start, end)
     # print(trans_date)
-    first_day = trans_date[0]
-    rest_days = trans_date[1:]
+    first_day = trans_date[30]
+    rest_days = trans_date[31:]
     first_day_insert(code, first_day, percent, downnotbuy, principal)
     for date in rest_days:
         # rest_days_insert(code, date, percent, stoploss, downnotbuy, principal)
@@ -1555,6 +1620,7 @@ def set_info_customer(start, end, stock, type):
     global_data['ma30'] = round(global_data['close'].rolling(30).mean(), 2)
     calculate_list = global_data['trade_date'].values.tolist()
     # print(calculate_list)
+    # global_data.to_csv('cu.csv')
     # print(global_data)
     return global_data
 
@@ -1608,6 +1674,6 @@ def save_back_tocsv_customer(start, end, code, downnotbuy, percent, stoploss, mi
 
 #
 # run_customer('20221010','20230112',['600073.SH', '000005.SZ'], 0.1, 0.2, True, 100000, 0.1,False)
-run(['600855.SH'], 0.1, 0.2, True, 100000, 0.1, False,False)
-# run_customer('20220707', '20230211', ['600073.SH', '000005.SZ'], 0.1, 0.2, True, 100000, 0.1)
+# run(['000016.SZ'], 0.1, 0.2, True, 100000, 0.1, False,False)
+# run_customer('20220707', '20230418', ['600073.SH', '000016.SZ'], 0.1, 0.2, True, 100000, 0.1,True)
 # run_customer('20220707', '20230211', ['600073.SH'], 0.1, 0.2, True, 100000, 0.1)

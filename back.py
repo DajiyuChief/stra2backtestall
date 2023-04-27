@@ -26,7 +26,7 @@ from PyQt5.QtWidgets import QAbstractItemView, QHeaderView, QTableWidgetItem, QM
 from gol_all import get_value, set_value
 from baseFun import split_list_n_list, set_kline_data, get_stock_code, get_name, mkdir, kill_proc_tree, create_all_dir, \
     get_need_data, get_path, check_process_running, pull_fun_name, pull_stock_name, hold_stock, create_holdstock_csv, \
-    create_finished_list, write_to_csv
+    create_finished_list, write_to_csv,settoday
 from MessageBox import MessageBox, QuestionBox
 from backtest_all import run2_all
 from load_csvdata import load_finished_code, load_winning_code,load_today_buy
