@@ -25,7 +25,7 @@ from MessageBox import MessageBox, QuestionBox
 from backtest_all import run2_all
 from baseFun import get_stock_code, get_name, split_list_n_list, mkdir, kill_proc_tree, get_need_data, set_kline_data, \
     create_customer_dir, find_proc_tree, check_process_running, hold_stock, create_holdstock_csv, write_to_csv, \
-    check_process_running_customer,settoday
+    check_process_running_customer, settoday, split_customer
 from buyandsellui import BuyandSell
 from gol_all import get_value, set_value
 from load_csvdata import load_finished_code, load_winning_code, load_winning_code_customer
@@ -106,7 +106,7 @@ class Ui_customer(object):
         sizePolicy.setHeightForWidth(self.groupBox_2.sizePolicy().hasHeightForWidth())
         self.groupBox_2.setSizePolicy(sizePolicy)
         self.groupBox_2.setMinimumSize(QtCore.QSize(100, 0))
-        self.groupBox_2.setMaximumSize(QtCore.QSize(350, 16777215))
+        self.groupBox_2.setMaximumSize(QtCore.QSize(400, 16777215))
         self.groupBox_2.setObjectName("groupBox_2")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.groupBox_2)
         self.verticalLayout.setObjectName("verticalLayout")
@@ -217,27 +217,32 @@ class Ui_customer(object):
         try:
             exist_list = []
             csv_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'custmoerlist.csv'
-            df = pd.read_csv(csv_path)
-            code_list = df['code'].values.tolist()
+            # df = pd.read_csv(csv_path)
+            # code_list = df['code'].values.tolist()
             code = self.codeinput.toPlainText()
             code_input_list = code.split('\n')
+            startday = self.startday.text()
+            endday = self.endday.text()
             while '' in code_input_list:
                 code_input_list.remove('')
             for item in code_input_list:
                 code = get_stock_code(item)
-                if code in code_list:
-                    exist_list.append(code)
-                    continue
+                # if code in code_list:
+                #     df.drop(df[df['code'] == code].index)
+                #     # exist_list.append(code)
+                #     # continue
                 name = get_name(code)
                 with open(csv_path, 'a',
                           encoding='UTF8', newline='') as f:
                     writer = csv.writer(f)
-                    writer.writerow([code, name])
+                    writer.writerow([code, name,startday,endday])
+            df = pd.read_csv(csv_path)
+            df.drop_duplicates(subset='code',keep='last').to_csv(csv_path,index=False)
             self.refresh_customer_lsit()
-            if len(exist_list) > 0:
-                exist_code = ','.join(exist_list)
-                message = MessageBox()
-                message.show_message(exist_code + '已存在，请勿重复添加')
+            # if len(exist_list) > 0:
+            #     exist_code = ','.join(exist_list)
+            #     message = MessageBox()
+            #     message.show_message(exist_code + '已存在，请勿重复添加')
         except Exception as e:
             traceback.print_exc()
             message = MessageBox()
@@ -251,6 +256,8 @@ class Ui_customer(object):
         for i in range(len(df)):
             self.customerlist.setItem(i, 0, QTableWidgetItem(str(df_list[i][0])))
             self.customerlist.setItem(i, 1, QTableWidgetItem(str(df_list[i][1])))
+            self.customerlist.setItem(i, 2, QTableWidgetItem(str(df_list[i][2])))
+            self.customerlist.setItem(i, 3, QTableWidgetItem(str(df_list[i][3])))
 
     def delete_selected(self):
         try:
@@ -292,8 +299,8 @@ class Ui_customer(object):
         try:
             processlist = []
             num = int(self.processnum.text())
-            startday = self.startday.text()
-            endday = self.endday.text()
+            # startday = self.startday.text()
+            # endday = self.endday.text()
             conditionrsi = float(self.conditionrsi.text())
             stoploss = float(self.stoploss.text())
             principal = int(self.principal.text())
@@ -302,14 +309,17 @@ class Ui_customer(object):
             middleadd = self.middleadd.isChecked()
             list_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'custmoerlist.csv'
             df = pd.read_csv(list_path)
-            # code_list = sorted(list(
-            #     set(df['code'].values.tolist()) - set(
-            #         load_finished_code(conditionrsi, stoploss, downnotbuy_flag, customer_flag))))
             code_list = df['code'].values.tolist()
-            splited_list = split_list_n_list(code_list, num)
+            # splited_list = split_list_n_list(code_list, num)
+            splited_list = split_customer()
             for item in splited_list:
+                # print(item)
+                startday = str(item[0][0])
+                endday = str(item[0][1])
+                codelist = item[1]
+                # print(start,end)
                 process = multiprocessing.Process(target=run_customer, args=(startday, endday,
-                                                                             item, conditionrsi, stoploss,
+                                                                             codelist, conditionrsi, stoploss,
                                                                              downnotbuy_flag, principal, -10000,middleadd,
                                                                              ))
                 processlist.append(process)

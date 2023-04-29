@@ -279,7 +279,7 @@ def create_customer_dir():
 def create_csv():
     list1_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'custmoerlist.csv'
     list2_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'holdlist.csv'
-    header1 = ['code', 'name']
+    header1 = ['code', 'name','start','end']
     header2 = ['code', 'name', 'first_buy_date', 'first_buy_price', 'current_cost_price', 'number_of_stock',
                'current_market_value', 'win_percnet', 'up_percent']
     header3 = ['code']
@@ -566,6 +566,16 @@ def insert_nowdata(global_data, stockcode):
     return global_data
 
 
+def split_customer():
+    csv_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'custmoerlist.csv'
+    df = pd.read_csv(csv_path)
+    res = []
+    for group in df.groupby(['start','end']):
+        span = group[0]
+        codelist = group[1]['code'].values.tolist()
+        res.append([span,codelist])
+    return res
+
 mkdir(os.getcwd() + os.path.sep + 'customer')
 mkdir(os.getcwd() + os.path.sep + 'saved_data')
 create_all_dir()
@@ -573,4 +583,4 @@ create_customer_dir()
 create_csv()
 create_holddir()
 
-# print(class_bankuai('600073.SH'))
+# split_customer()

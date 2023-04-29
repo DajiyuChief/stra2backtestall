@@ -446,7 +446,7 @@ def is_updownstop(date,code):
     :param code:
     :return: 1涨停 -1跌停 0无
     """
-    percent = class_bankuai(code)
+    percent = class_bankuai(code)*100
     todaypercent = global_data.loc[global_data['trade_date'] == date].pct_chg.values[0]
     if todaypercent > 0 and todaypercent>percent:
         return 1
@@ -997,7 +997,6 @@ def rest_days_sp_bolls(date):
     # elif last_sp_boll_days >= 3 and (close > mid_boll):
     elif last_sp_boll_days >= 2:
         if sp_buy_bolls_flag:
-            print(date, rsi_var)
             if rsi < 80 and (close > open) and (close > mid_boll) and rsi_var >= 0.15:
                 trans_flag = 1
                 sp_boll_days = 0
