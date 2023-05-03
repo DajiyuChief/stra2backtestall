@@ -61,31 +61,22 @@ def load_winning_code_customer(start,end,rsi, stoploss, percnet, downnotbuy, typ
     stoploss = str(stoploss)
     dirpath = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(downnotbuy) + '\\' + str(
         percnet) + str(
-        stoploss) + str(middleadd)+ '\\' + start + end + '\\'
+        stoploss) + str(middleadd)+ '\\'
     csv_path = dirpath + 'finishedlist.csv'
-    # if not type:
-    #     csv_path = os.getcwd() + os.path.sep + 'multi' + '\\' + 'multi' + str(
-    #         downnotbuy) + '\\' + rsi + stoploss + '\\' + 'finishedlist.csv'
-    # elif type:
-    #     csv_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(
-    #         downnotbuy) + '\\' + rsi + stoploss + '\\' + 'finishedlist.csv'
     if not os.path.exists(csv_path):
         return []
     df = pd.read_csv(csv_path)
     if df.empty:
         return []
-    finished_list = load_finished_code(rsi, stoploss, downnotbuy, type,middleadd)
-    satisfied_list = []
     if not type:
         finish_csv = pd.read_csv(csv_path).drop_duplicates(subset='code', keep='last')
-        # finishlist_csv = pd.read_csv(finishlist_path).drop_duplicates(subset='code', keep='last')
-        # finishlist_csv.to_csv(finishlist_path, index=False)
         satisfied_csv = finish_csv[finish_csv['win_percent'] >= percnet*100]
     elif type:
         finish_csv = pd.read_csv(csv_path).drop_duplicates(subset='code', keep='last')
         satisfied_csv = finish_csv
-
+    # print(satisfied_csv.values.tolist())
     return satisfied_csv.values.tolist()
+
 def load_today_buy(rsi, stoploss,downnotbuy,middleadd):
     rsi = str(rsi)
     stoploss = str(stoploss)
@@ -96,4 +87,3 @@ def load_today_buy(rsi, stoploss,downnotbuy,middleadd):
     if satisfied_csv.empty:
         return []
     return satisfied_csv.values.tolist()
-# load_winning_code(0.1,0.2,-10,True,False)

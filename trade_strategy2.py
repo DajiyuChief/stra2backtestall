@@ -1504,9 +1504,12 @@ def run(code_list, percent, stoploss, downnotbuy, principal, winpercent, custome
 
 
 def run_customer(start, end, code_list, percent, stoploss, downnotbuy, principal, winpercent, middleadd):
+    # dirpath = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(downnotbuy) + '\\' + str(
+    #     percent) + str(
+    #     stoploss) + str(middleadd) + '\\' + start + end + '\\'
     dirpath = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(downnotbuy) + '\\' + str(
         percent) + str(
-        stoploss) + str(middleadd) + '\\' + start + end + '\\'
+        stoploss) + str(middleadd) + '\\'
     finishlist_path = dirpath + 'finishedlist.csv'
     mkdir(dirpath)
     create_finished_list(finishlist_path)
@@ -1543,7 +1546,7 @@ def run_customer(start, end, code_list, percent, stoploss, downnotbuy, principal
             write_to_csv(finishlist_path, [code, name, span_days, win_percent, up_percent, diff_percent, trade_type])
 
             # write_to_csv(finishlist_path, [code])
-            finishlist_csv = pd.read_csv(finishlist_path).drop_duplicates(subset='code', keep='first')
+            finishlist_csv = pd.read_csv(finishlist_path).drop_duplicates(subset='code', keep='last')
             finishlist_csv.to_csv(finishlist_path, index=False)
             trade_flag_list.drop(trade_flag_list.index, inplace=True)
             time.sleep(1)
@@ -1655,11 +1658,11 @@ def save_back_tocsv_customer(start, end, code, downnotbuy, percent, stoploss, mi
     # csvpath = os.getcwd() + os.path.sep + 'saved_data' + '\\' + str(code).replace('.', '') + '.csv'
     csvpath = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(downnotbuy) + '\\' + str(
         percent) + str(
-        stoploss) + str(middleadd) + '\\' + start + end + '\\' + 'saved_data' + '\\' + str(code).replace('.',
+        stoploss) + str(middleadd) + '\\' + 'saved_data' + '\\' + str(code).replace('.',
                                                                                                          '') + '.csv'
     dir = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(downnotbuy) + '\\' + str(
         percent) + str(
-        stoploss) + str(middleadd) + '\\' + start + end + '\\' + 'saved_data'
+        stoploss) + str(middleadd) + '\\' + 'saved_data'
     mkdir(dir)
     if not os.path.exists(csvpath):
         global_data.to_csv(csvpath)

@@ -258,6 +258,7 @@ class Ui_MainWindow(object):
         middleadd = self.middleadd.isChecked()
         try:
             if not today_buy:
+                today = datetime.datetime.today().strftime('%Y%m%d')
                 finished_list = load_finished_code(conditionrsi, stoploss, downnotbuy_flag, customer_flag,middleadd)
                 satisfied_code_win_name = load_winning_code(conditionrsi, stoploss, percent,
                                                             downnotbuy_flag, customer_flag,middleadd)
@@ -267,6 +268,7 @@ class Ui_MainWindow(object):
                     self.finishedlist.addItem(finished_code)
                 while row < len(satisfied_code_win_name):
                     trade_type = satisfied_code_win_name[row][6]
+                    trade_date = satisfied_code_win_name[row][2].split('-')[1]
                     win = QTableWidgetItem()
                     upper = QTableWidgetItem()
                     diff = QTableWidgetItem()
@@ -280,9 +282,9 @@ class Ui_MainWindow(object):
                     self.satisfaciedlist.setItem(row, 3, win)
                     self.satisfaciedlist.setItem(row, 4, upper)
                     self.satisfaciedlist.setItem(row, 5, diff)
-                    if 0 < trade_type < 3:
+                    if 0 < trade_type < 3 and trade_date == today:
                         self.satisfaciedlist.item(row, 0).setBackground(QBrush(QColor(181, 61, 61)))
-                    elif trade_type < 0 or trade_type == 3:
+                    elif (trade_type < 0 or trade_type == 3) and trade_date == today:
                         self.satisfaciedlist.item(row, 0).setBackground(QBrush(QColor(74, 194, 194)))
                     row = row + 1
                 self.satisfaciedlist.sortItems(0, Qt.AscendingOrder)

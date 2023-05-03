@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import datetime
 import multiprocessing
 import os
 import threading
@@ -524,6 +525,7 @@ class Ui_Holder(object):
             result_csv = pd.read_csv(csv_path)
             row_count = self.holderlist.rowCount()
             # print(result_csv)
+            today = datetime.datetime.today().strftime('%Y%m%d')
             for row in range(0,row_count):
                 # print(row)
                 code = self.holderlist.item(row,0).text()
@@ -531,9 +533,10 @@ class Ui_Holder(object):
                     data_index = result_csv[result_csv['code'] == code].index.values.tolist()[0]
                     # print(result_csv[result_csv['code'] == code].index.values.tolist())
                     trade_type = result_csv.iloc[data_index]['trade_type']
-                    if 0 < trade_type < 3:
+                    trade_date = result_csv.iloc[data_index]['span'].split('-')[1]
+                    if 0 < trade_type < 3 and trade_date == today:
                         self.holderlist.item(row, 0).setBackground(QBrush(QColor(181, 61, 61)))
-                    elif trade_type < 0 or trade_type == 3:
+                    elif (trade_type < 0 or trade_type == 3) and trade_date == today:
                         self.holderlist.item(row, 0).setBackground(QBrush(QColor(74, 194, 194)))
                 except:
                     continue

@@ -314,16 +314,7 @@ def create_finished_list(path):
 
 def connect_database(address, port, user, password):
     pass
-    # mydb = mysql.connector.connect(
-    #     host=str(address),
-    #     port=int(port),
-    #     user=str(user),
-    #     passwd=str(password)
-    # )
-    # cursor = mydb.cursor()
-    # return cursor
 
-    # cursor.execute("show databases")
 
 
 def check_process_running(process_list, window, rsi, stoploss, iscustomer, downnotbuy, middleadd):
@@ -358,7 +349,7 @@ def check_process_running_customer(process_list, window, rsi, stoploss, iscustom
     else:
         dirpath = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(downnotbuy) + '\\' + str(
             rsi) + str(
-            stoploss) + str(middleadd) + '\\' + start + end + '\\'
+            stoploss) + str(middleadd) + '\\'
         finishlist_path = dirpath + 'finishedlist.csv'
     while True:
         is_alive_flag = []
