@@ -28,11 +28,13 @@ from baseFun import get_stock_code, get_name, split_list_n_list, mkdir, kill_pro
     check_process_running_customer, settoday, split_customer
 from buyandsellui import BuyandSell
 from gol_all import get_value, set_value
-from load_csvdata import load_finished_code, load_winning_code, load_winning_code_customer
+from load_csvdata import load_finished_code, load_winning_code, load_winning_code_customer, \
+    load_today_winning_code_customer
 from trade_strategy2 import run_customer, run
 
 
 class Ui_customer(object):
+
     def setupUi(self, customer):
         customer.setObjectName("customer")
         customer.resize(1079, 830)
@@ -157,7 +159,7 @@ class Ui_customer(object):
         self.codeinput.setTabChangesFocus(False)
         self.customerlist.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.customerlist.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.customerlist.setHorizontalHeaderLabels(['代码', '名称','开始','结束'])
+        self.customerlist.setHorizontalHeaderLabels(['代码', '名称', '开始', '结束'])
         self.outputtable.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.outputtable.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.outputtable.setHorizontalHeaderLabels(['代码', '名称', '收益率', '股票涨幅', '差异率'])
@@ -228,9 +230,9 @@ class Ui_customer(object):
                 with open(csv_path, 'a',
                           encoding='UTF8', newline='') as f:
                     writer = csv.writer(f)
-                    writer.writerow([code, name,startday,endday])
+                    writer.writerow([code, name, startday, endday])
             df = pd.read_csv(csv_path)
-            df.drop_duplicates(subset='code',keep='last').to_csv(csv_path,index=False)
+            df.drop_duplicates(subset='code', keep='last').to_csv(csv_path, index=False)
             self.refresh_customer_lsit()
         except Exception as e:
             traceback.print_exc()
@@ -253,21 +255,41 @@ class Ui_customer(object):
             dirpath = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(
                 self.downnotbuy.isChecked()) + '\\' + str(
                 self.conditionrsi.text()) + str(
-                self.stoploss.text()) +str(self.middleadd.isChecked())+ '\\'
+                self.stoploss.text()) + str(self.middleadd.isChecked()) + '\\'
             finishlist_path = dirpath + 'finishedlist.csv'
-            finish_csv = pd.read_csv(finishlist_path)
+            realdinish_csv_path = dirpath + 'realtime' + '\\' + 'finishedlist.csv'
+            try:
+                finish_csv = pd.read_csv(finishlist_path)
+                finish_flag = True
+            except:
+                finish_flag = False
+            try:
+                realdinish_csv = pd.read_csv(realdinish_csv_path)
+                realfinish_flag = True
+            except:
+                realfinish_flag = False
             drop_row = []
             csv_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'custmoerlist.csv'
             df = pd.read_csv(csv_path)
             for i in range(len(self.customerlist.selectedItems())):
                 row = self.customerlist.selectedItems()[i].row()  # 获取选中文本所在的行
                 code = self.customerlist.item(row, 0).text()
-                finish_csv.drop(finish_csv.loc[finish_csv['code'] == code].index,inplace = True)
+                if finish_flag:
+                    finish_csv.drop(finish_csv.loc[finish_csv['code'] == code].index, inplace=True)
+                    finish_csv.to_csv(finishlist_path, index=False)
+                if realfinish_flag:
+                    realdinish_csv.drop(realdinish_csv.loc[realdinish_csv['code'] == code].index, inplace=True)
+                    realdinish_csv.to_csv(realdinish_csv_path, index=False)
                 data_path = dirpath + code + '.csv'
+                save_path = dirpath + 'saved_data' + '\\' + code.replace('.','') + '.csv'
+                real_data_path = dirpath + 'realtime' + '\\' + code + '.csv'
+                html_path = os.getcwd() + os.path.sep + 'customer' + '\\' +'generate_html' + '\\' + code.replace('.','') + '.html'
+                for item in [data_path,save_path,real_data_path,html_path]:
+                    if os.path.exists(item):
+                        os.remove(item)
                 drop_row.append(row)
             df = df.drop(drop_row)
             df.to_csv(csv_path, index=False, encoding="utf-8")
-            finish_csv.to_csv(finishlist_path,index = False)
             self.refresh_customer_lsit()
             self.refresh_list()
         except Exception as e:
@@ -297,20 +319,21 @@ class Ui_customer(object):
                 startday = str(item[0][0])
                 endday = str(item[0][1])
                 codelist = item[1]
-                print(startday,endday)
+                # print(startday,endday)
                 process = multiprocessing.Process(target=run_customer, args=(startday, endday,
                                                                              codelist, conditionrsi, stoploss,
-                                                                             downnotbuy_flag, principal, -10000,middleadd,
+                                                                             downnotbuy_flag, principal, -10000,
+                                                                             middleadd,
                                                                              ))
                 processlist.append(process)
                 process.start()
             thread1 = threading.Thread(target=check_process_running_customer, args=(
-                processlist, self, conditionrsi, stoploss, customer_flag, downnotbuy_flag,middleadd,startday,endday,))
+                processlist, self, conditionrsi, stoploss, customer_flag, downnotbuy_flag, middleadd, startday,
+                endday,))
             thread1.start()
         except Exception as e:
             message = MessageBox()
             message.show_message(str(e))
-
 
     def today_test(self):
         try:
@@ -343,8 +366,6 @@ class Ui_customer(object):
             message = MessageBox()
             message.show_message(str(e))
 
-
-
     def refresh_list(self):
         row = 0
         startday = self.startday.text()
@@ -359,7 +380,7 @@ class Ui_customer(object):
         try:
             today = datetime.datetime.today().strftime('%Y%m%d')
             satisfied_code_win_name = load_winning_code_customer(startday, endday, conditionrsi, stoploss, percent,
-                                                                 downnotbuy_flag, customer_flag,middleadd)
+                                                                 downnotbuy_flag, customer_flag, middleadd)
             self.outputtable.setRowCount(len(satisfied_code_win_name))
             while row < len(satisfied_code_win_name):
                 trade_type = satisfied_code_win_name[row][6]
@@ -385,7 +406,42 @@ class Ui_customer(object):
             message = MessageBox()
             message.show_message(str(e))
 
-
+    def refresh_today_list(self):
+        try:
+            startday = self.startday.text()
+            endday = self.endday.text()
+            conditionrsi = float(self.conditionrsi.text())
+            stoploss = float(self.stoploss.text())
+            percent = float(0.1)
+            downnotbuy_flag = self.downnotbuy.isChecked()
+            customer_flag = True
+            middleadd = self.middleadd.isChecked()
+            row = 0
+            today = datetime.datetime.today().strftime('%Y%m%d')
+            satisfied_code_win_name = load_today_winning_code_customer(conditionrsi, stoploss,downnotbuy_flag, middleadd)
+            self.outputtable.setRowCount(len(satisfied_code_win_name))
+            while row < len(satisfied_code_win_name):
+                trade_type = satisfied_code_win_name[row][6]
+                trade_date = satisfied_code_win_name[row][2].split('-')[1]
+                win = QTableWidgetItem()
+                upper = QTableWidgetItem()
+                diff = QTableWidgetItem()
+                win.setData(QtCore.Qt.DisplayRole, satisfied_code_win_name[row][3])
+                upper.setData(QtCore.Qt.DisplayRole, satisfied_code_win_name[row][4])
+                diff.setData(QtCore.Qt.DisplayRole, satisfied_code_win_name[row][5])
+                self.outputtable.setItem(row, 0, QTableWidgetItem(satisfied_code_win_name[row][0]))
+                self.outputtable.setItem(row, 1, QTableWidgetItem(str(satisfied_code_win_name[row][1])))
+                self.outputtable.setItem(row, 2, win)
+                self.outputtable.setItem(row, 3, upper)
+                self.outputtable.setItem(row, 4, diff)
+                if 0 < trade_type < 3 and trade_date == today:
+                    self.outputtable.item(row, 0).setBackground(QBrush(QColor(181, 61, 61)))
+                elif (trade_type < 0 or trade_type == 3) and trade_date == today:
+                    self.outputtable.item(row, 0).setBackground(QBrush(QColor(74, 194, 194)))
+                row = row + 1
+        except Exception as e:
+            message = MessageBox()
+            message.show_message(str(e))
 
     def stop_run(self):
         me = os.getpid()
@@ -411,7 +467,7 @@ class Ui_customer(object):
                 saved_dir_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(
                     downnotbuy_flag) + '\\' + str(
                     conditionrsi) + str(
-                    stoploss) + str(middleadd)+'\\' + 'saved_data'
+                    stoploss) + str(middleadd) + '\\' + 'saved_data'
                 data_path = saved_dir_path + '\\' + contents.replace('.', '') + '.csv'
                 # trade_info = get_need_data(data_path, startday, endday, 60, 10)
                 # trade_info = pd.read_csv(data_path)[-400:]  # k线日期跨度
@@ -419,7 +475,8 @@ class Ui_customer(object):
                 trade_info['trade_date'] = pd.to_datetime(trade_info['trade_date'], format='%Y%m%d').apply(
                     lambda x: x.strftime('%Y-%m-%d'))
                 csv_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(
-                    downnotbuy_flag) + '\\' + str(conditionrsi) + str(stoploss) + str(middleadd) + '\\'  +contents + '.csv'
+                    downnotbuy_flag) + '\\' + str(conditionrsi) + str(stoploss) + str(
+                    middleadd) + '\\' + contents + '.csv'
                 # details = pd.read_csv(csv_path).iloc[-220:]  # 带有回测的k线长度
                 details = pd.read_csv(csv_path)
                 details = details[details['trade_type'] != 0]

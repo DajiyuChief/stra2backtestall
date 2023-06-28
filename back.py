@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import csv
 import datetime
+from datetime import timedelta
 import multiprocessing
 import os
 import shutil
@@ -246,26 +247,30 @@ class Ui_MainWindow(object):
             message.show_message(str(e))
 
     def refresh_list(self):
-        row = 0
-        # startday = self.startday.text()
-        # endday = self.endday.text()
-        conditionrsi = float(self.conditionrsi.text())
-        stoploss = float(self.stoploss.text())
-        percent = float(self.winningpercent.text())
-        downnotbuy_flag = self.downnotbuy.isChecked()
-        customer_flag = False
-        today_buy = self.todaybuy.isChecked()
-        middleadd = self.middleadd.isChecked()
         try:
+            row = 0
+            # startday = self.startday.text()
+            # endday = self.endday.text()
+            conditionrsi = float(self.conditionrsi.text())
+            stoploss = float(self.stoploss.text())
+            percent = float(self.winningpercent.text())
+            downnotbuy_flag = self.downnotbuy.isChecked()
+            customer_flag = False
+            today_buy = self.todaybuy.isChecked()
+            middleadd = self.middleadd.isChecked()
+            today = datetime.datetime.today().strftime('%Y%m%d')
+
+            finished_list = load_finished_code(conditionrsi, stoploss, downnotbuy_flag, customer_flag, middleadd)
+            self.finishedlist.clear()
+
+            for finished_code in finished_list:
+                self.finishedlist.addItem(finished_code)
             if not today_buy:
-                today = datetime.datetime.today().strftime('%Y%m%d')
-                finished_list = load_finished_code(conditionrsi, stoploss, downnotbuy_flag, customer_flag,middleadd)
+
+
                 satisfied_code_win_name = load_winning_code(conditionrsi, stoploss, percent,
                                                             downnotbuy_flag, customer_flag,middleadd)
-                self.finishedlist.clear()
                 self.satisfaciedlist.setRowCount(len(satisfied_code_win_name))
-                for finished_code in finished_list:
-                    self.finishedlist.addItem(finished_code)
                 while row < len(satisfied_code_win_name):
                     trade_type = satisfied_code_win_name[row][6]
                     trade_date = satisfied_code_win_name[row][2].split('-')[1]
@@ -290,12 +295,20 @@ class Ui_MainWindow(object):
                 self.satisfaciedlist.sortItems(0, Qt.AscendingOrder)
             else:
                 row = 0
+                # finished_list = load_finished_code(conditionrsi, stoploss, downnotbuy_flag, customer_flag, middleadd)
+                # for finished_code in finished_list:
+                #     self.finishedlist.addItem(finished_code)
                 satisfied_code_win_name = load_today_buy(conditionrsi, stoploss, downnotbuy_flag,middleadd)
                 self.satisfaciedlist.setRowCount(len(satisfied_code_win_name))
                 while row < len(satisfied_code_win_name):
+                    trade_date = satisfied_code_win_name[row][2].split('-')[1]
+                    if(trade_date != today):
+                        row = row + 1
+                        continue
                     win = QTableWidgetItem()
                     upper = QTableWidgetItem()
                     diff = QTableWidgetItem()
+                    trade_type = satisfied_code_win_name[row][6]
                     win.setData(QtCore.Qt.DisplayRole, satisfied_code_win_name[row][3])
                     upper.setData(QtCore.Qt.DisplayRole, satisfied_code_win_name[row][4])
                     diff.setData(QtCore.Qt.DisplayRole, satisfied_code_win_name[row][5])
@@ -306,7 +319,8 @@ class Ui_MainWindow(object):
                     self.satisfaciedlist.setItem(row, 3, win)
                     self.satisfaciedlist.setItem(row, 4, upper)
                     self.satisfaciedlist.setItem(row, 5, diff)
-                    self.satisfaciedlist.item(row, 0).setBackground(QBrush(QColor(181, 61, 61)))
+                    if 0 < trade_type < 3 and trade_date == today:
+                        self.satisfaciedlist.item(row, 0).setBackground(QBrush(QColor(181, 61, 61)))
                     row = row + 1
                 self.satisfaciedlist.sortItems(0, Qt.AscendingOrder)
         except Exception as e:
@@ -483,12 +497,17 @@ class Ui_MainWindow(object):
             csv_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'custmoerlist.csv'
             df = pd.read_csv(csv_path)
             df_code_list = df['code'].values.tolist()
+            offset = timedelta(days=180)
+            # start = start - offset
+            # start_ymd = start.strftime('%Y%m%d')
+            today = datetime.datetime.today().strftime('%Y%m%d')
+            start_ymd = (datetime.datetime.today() - offset).strftime('%Y%m%d')
             for i in range(len(self.satisfaciedlist.selectedItems())):
                 row = self.satisfaciedlist.selectedItems()[i].row()  # 获取选中文本所在的行
                 code = self.satisfaciedlist.item(row,0).text()
                 if code not in df_code_list:
                     name = get_name(code)
-                    df.loc[len(df)] = [code,name]
+                    df.loc[len(df)] = [code,name,start_ymd,today]
             df.to_csv(csv_path, index=False, encoding="utf-8")
         except Exception as e:
             traceback.print_exc()
@@ -497,22 +516,29 @@ class Ui_MainWindow(object):
 
     def today_buy(self):
         todaybuy_falg = self.todaybuy.isChecked()
+        # self.refresh_list()
         if not todaybuy_falg:
             self.refresh_list()
         else:
-            row = 0
-            # startday = self.startday.text()
-            # endday = self.endday.text()
-            conditionrsi = float(self.conditionrsi.text())
-            stoploss = float(self.stoploss.text())
-            percent = float(self.winningpercent.text())
-            downnotbuy_flag = self.downnotbuy.isChecked()
-            customer_flag = False
-            middleadd = self.middleadd.isChecked()
             try:
+                row = 0
+                # startday = self.startday.text()
+                # endday = self.endday.text()
+                conditionrsi = float(self.conditionrsi.text())
+                stoploss = float(self.stoploss.text())
+                percent = float(self.winningpercent.text())
+                downnotbuy_flag = self.downnotbuy.isChecked()
+                customer_flag = False
+                middleadd = self.middleadd.isChecked()
+                today = datetime.datetime.today().strftime('%Y%m%d')
+
                 satisfied_code_win_name = load_today_buy(conditionrsi, stoploss,downnotbuy_flag,middleadd)
                 self.satisfaciedlist.setRowCount(len(satisfied_code_win_name))
                 while row < len(satisfied_code_win_name):
+                    trade_date = satisfied_code_win_name[row][2].split('-')[1]
+                    if (trade_date != today):
+                        row = row +1
+                        continue
                     win = QTableWidgetItem()
                     upper = QTableWidgetItem()
                     diff = QTableWidgetItem()

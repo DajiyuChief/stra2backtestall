@@ -332,12 +332,18 @@ def check_process_running(process_list, window, rsi, stoploss, iscustomer, downn
         for item in process_list:
             is_alive_flag.append(item.is_alive())
         if True in is_alive_flag:
-            window.refresh_list()
+            if not iscustomer:
+                window.refresh_list()
+            else:
+                window.refresh_today_list()
             time.sleep(2)
         else:
             finishlist_csv = pd.read_csv(finishlist_path).drop_duplicates(subset='code', keep='last')
             finishlist_csv.to_csv(finishlist_path, index=False)
-            window.refresh_list()
+            if not iscustomer:
+                window.refresh_list()
+            else:
+                window.refresh_today_list()
             break
 
 

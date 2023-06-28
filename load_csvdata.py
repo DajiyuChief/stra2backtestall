@@ -1,3 +1,5 @@
+import datetime
+
 import pandas as pd
 import os
 from baseFun import get_need_data, get_name
@@ -78,12 +80,36 @@ def load_winning_code_customer(start,end,rsi, stoploss, percnet, downnotbuy, typ
     return satisfied_csv.values.tolist()
 
 def load_today_buy(rsi, stoploss,downnotbuy,middleadd):
+    today = datetime.datetime.today().strftime('%Y%m%d')
     rsi = str(rsi)
     stoploss = str(stoploss)
     csv_path = os.getcwd() + os.path.sep + 'multi' + '\\' + 'multi' + str(
         downnotbuy) + '\\' + rsi + stoploss +str(middleadd)+ '\\' + 'finishedlist.csv'
+    if not os.path.exists(csv_path):
+        return []
     finish_csv = pd.read_csv(csv_path)
     satisfied_csv = finish_csv[finish_csv['trade_type'] > 0]
+    satisfied_csv = satisfied_csv[satisfied_csv['trade_type'] < 3]
+    # satisfied_csv = satisfied_csv[satisfied_csv['span'].str.split('-')[1] == today]
+    satisfied_csv['end_date'] = satisfied_csv['span'].apply(lambda x:str(x).split('-')[1])
+    satisfied_csv = satisfied_csv[satisfied_csv['end_date'] == today]
+    satisfied_csv = satisfied_csv.drop_duplicates(keep='last',inplace=False)
     if satisfied_csv.empty:
         return []
+    return satisfied_csv.values.tolist()
+
+def load_today_winning_code_customer(rsi, stoploss, downnotbuy, middleadd):
+    stoploss = str(stoploss)
+    dirpath = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(downnotbuy) + '\\' + str(
+        rsi) + str(
+        stoploss) + str(middleadd) + '\\' + 'realtime' + '\\'
+    csv_path = dirpath + 'finishedlist.csv'
+    if not os.path.exists(csv_path):
+        return []
+    satisfied_code_win_name = pd.read_csv(csv_path)
+    if satisfied_code_win_name.empty:
+        return []
+    finish_csv = pd.read_csv(csv_path).drop_duplicates(subset='code', keep='last')
+    satisfied_csv = finish_csv
+    # print(satisfied_csv.values.tolist())
     return satisfied_csv.values.tolist()

@@ -24,7 +24,7 @@ from MessageBox import MessageBox
 from buyandsellui import BuyandSell
 from gol_all import set_value, get_value
 from baseFun import get_name, get_stock_code, hold_stock, create_holdstock_csv, write_to_csv, split_list_n_list, \
-    check_process_running, set_kline_data, getnewestdata
+    check_process_running, set_kline_data, getnewestdata, create_finished_list
 from load_csvdata import load_winning_code
 from stockinfo import StockInfoUI
 from trade_strategy2 import run
@@ -510,7 +510,7 @@ class Ui_Holder(object):
             message = MessageBox()
             message.show_message(str(e))
 
-    def refresh_list(self):
+    def refresh_today_list(self):
         try:
             list_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'holdlist.csv'
 
@@ -522,6 +522,8 @@ class Ui_Holder(object):
             customer_flag = True
             csv_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(
                 downnotbuy_flag) + '\\' + conditionrsi + stoploss + str(True)+'\\' + 'realtime' + '\\' + 'finishedlist.csv'
+            if not os.path.exists(csv_path):
+                create_finished_list(csv_path)
             result_csv = pd.read_csv(csv_path)
             row_count = self.holderlist.rowCount()
             # print(result_csv)
