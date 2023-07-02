@@ -214,6 +214,10 @@ class Ui_Holder(object):
         self.downnotbuy.setText(_translate("customer", "MA下行不买入"))
 
     def refresh(self):
+        '''
+        刷新
+        :return:
+        '''
         try:
             self.holderlist.blockSignals(True)
             # 设置全局变量 方便增删改查
@@ -261,6 +265,10 @@ class Ui_Holder(object):
             print(e)
 
     def add_stock(self):
+        '''
+        加入股票代码
+        :return:
+        '''
         code = self.codeinput.text()
         try:
             # rowPosition = self.holderlist.rowCount()
@@ -290,6 +298,13 @@ class Ui_Holder(object):
             traceback.print_exc()
 
     def add_code_rest(self,dateTime, price, num):
+        '''
+        加入股票代码之后
+        :param dateTime:
+        :param price:
+        :param num:
+        :return:
+        '''
         try:
             code = self.codeinput.text()
             if "." not in code:
@@ -322,6 +337,10 @@ class Ui_Holder(object):
             traceback.print_exc()
 
     def save(self):
+        '''
+        保存
+        :return:
+        '''
         path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'holdlist.csv'
         try:
             df = pd.DataFrame(get_value('df_holdlist'))
@@ -347,6 +366,11 @@ class Ui_Holder(object):
 
     # 设置单元格不可编辑
     def set_unedit(self, col):
+        '''
+        设置单元格不可编辑
+        :param col:
+        :return:
+        '''
         self.holderlist.blockSignals(True)
         row_count = self.holderlist.rowCount()
         for row in range(row_count):
@@ -358,6 +382,10 @@ class Ui_Holder(object):
 
     # 设置单元格可编辑
     def set_editable(self):
+        '''
+        设置单元格可编辑
+        :return:
+        '''
         self.holderlist.blockSignals(True)
         row_count = self.holderlist.rowCount()
         item2 = QtWidgets.QTableWidgetItem()
@@ -373,6 +401,12 @@ class Ui_Holder(object):
 
     # 检测是否插入新的行
     def check(self,row,col):
+        '''
+        检测是否插入新的行
+        :param row:
+        :param col:
+        :return:
+        '''
         df = pd.DataFrame(get_value('df_holdlist'))
         code_list = df['code'].values.tolist()
         try:
@@ -392,6 +426,10 @@ class Ui_Holder(object):
             traceback.print_exc()
 
     def delete(self):
+        '''
+        删除
+        :return:
+        '''
         path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'holdlist.csv'
         try:
             df = pd.DataFrame(get_value('df_holdlist'))
@@ -415,6 +453,11 @@ class Ui_Holder(object):
             traceback.print_exc()
 
     def sort_by_column(self, index):
+        '''
+        按列排序
+        :param index:
+        :return:
+        '''
         try:
             if self.orderType == Qt.DescendingOrder:
                 self.orderType = Qt.AscendingOrder
@@ -430,6 +473,10 @@ class Ui_Holder(object):
 
 
     def buy(self):
+        '''
+        买卖操作
+        :return:
+        '''
         try:
             df = pd.DataFrame(get_value('df_holdlist'))
             add_number = self.codeinput.text()
@@ -490,6 +537,10 @@ class Ui_Holder(object):
             # print(e)
 
     def refresh_upper_percent(self):
+        '''
+        刷新涨幅
+        :return:
+        '''
         try:
             path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'holdlist.csv'
             df = pd.read_csv(path)
@@ -511,6 +562,10 @@ class Ui_Holder(object):
             message.show_message(str(e))
 
     def refresh_today_list(self):
+        '''
+        刷新今日交易情况
+        :return:
+        '''
         try:
             list_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'holdlist.csv'
 
@@ -547,6 +602,10 @@ class Ui_Holder(object):
             message = MessageBox()
             message.show_message(str(e))
     def real_test(self):
+        '''
+        实时检测
+        :return:
+        '''
         try:
             processlist = []
             num = 2
@@ -572,6 +631,10 @@ class Ui_Holder(object):
 
 
     def doubleclick(self):
+        '''
+        双击显示k线
+        :return:
+        '''
         try:
             row = self.holderlist.selectedItems()[0].row()  # 获取选中文本所在的行
             column = self.holderlist.selectedItems()[0].column()  # 获取选中文本所在的列

@@ -13,6 +13,8 @@ import tushare as ts
 import talib as ta
 import datetime
 from datetime import date, datetime, timedelta
+
+import gol_all
 from client import get_data
 from baseFun import find_real_start_end, get_path, write_to_csv, mkdir, create_finished_list, get_name, get_priority, \
     class_bankuai
@@ -38,7 +40,8 @@ trade_flag_list = pd.DataFrame(
 # 中低位股票
 priority_csv = pd.read_csv(os.getcwd() + os.path.sep + 'priority.csv')
 gol_code = ''
-
+# 初始化全局
+gol_all._init()
 
 
 def set_info(start, end, stock, type):

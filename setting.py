@@ -83,6 +83,10 @@ class Ui_settings(object):
         self.testsqlbutton.setText(_translate("settings", "测试"))
 
     def connect_database(self):
+        '''
+        链接数据库
+        :return:
+        '''
         address = self.addressinput.text()
         port = self.portinput.text()
         user = self.userinput.text()

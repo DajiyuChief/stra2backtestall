@@ -34,7 +34,11 @@ bankuai = pd.read_csv("name.csv")
 
 
 def save_trade_date():
+    '''
     # 获取交易日
+    :return:
+    '''
+
     data = pro.query('trade_cal', is_open='1')
     date_list = list(data['cal_date'])
     date_int_list = list(map(int, date_list))
@@ -77,6 +81,12 @@ def stock_code_convert(stock_code):
 
 
 def split_list_n_list(origin_list, n):
+    '''
+    数组分割
+    :param origin_list:
+    :param n:
+    :return:
+    '''
     if len(origin_list) % n == 0:
         cnt = len(origin_list) // n
     else:
@@ -87,6 +97,12 @@ def split_list_n_list(origin_list, n):
 
 
 def kill_proc_tree(pid, including_parent=True):
+    '''
+    结束进程
+    :param pid:
+    :param including_parent:
+    :return:
+    '''
     parent = psutil.Process(pid)
     for child in parent.children(recursive=True):
         child.kill()
@@ -95,12 +111,23 @@ def kill_proc_tree(pid, including_parent=True):
 
 
 def find_proc_tree(pid, including_parent=True):
+    '''
+    查找进程树
+    :param pid:
+    :param including_parent:
+    :return:
+    '''
     parent = psutil.Process(pid)
     for child in parent.children(recursive=True):
         print(child.pid)
 
 
 def mkdir(path):
+    '''
+    创建文件夹
+    :param path:
+    :return:
+    '''
     import os  # 用于创建文件夹
     # 去除首位空格
     path = path.strip()
@@ -118,6 +145,14 @@ def mkdir(path):
 
 
 def set_kline_data(code, details, trade_info, url):
+    '''
+    设置k线数据
+    :param code:
+    :param details: 包含 买 卖 止损 止盈的数据
+    :param trade_info: 全部数据
+    :param url:
+    :return:
+    '''
     buy = []
     sell = []
     add = []
@@ -161,12 +196,14 @@ def set_kline_data(code, details, trade_info, url):
     kline = plot_kline(trade_info, name,
                        [buy, buy_high, sell, sell_high, add, add_high, minus, minus_high, stopwin, stopwin_high,
                         stoploss, stoploss_high])
-    # url = 'generate_html' + '\\' + code.replace('.', '') + '.html'
-    # grid.render(url)
     kline.render(url)
 
 
 def pull_stock_name():
+    '''
+    获取A股数据
+    :return:
+    '''
     # 拉取股票数据
     df = pro.stock_basic(**{
         "ts_code": "",
@@ -186,13 +223,22 @@ def pull_stock_name():
 
 
 def pull_fun_name():
+    '''
+    获取基金数据
+    :return:
+    '''
     df = pro.fund_basic(market='E')
     df2 = df[['ts_code', 'name', 'market']]
     return df2
 
 
 def get_name(stockcode):
+    '''
     # 从表中获取姓名
+    :param stockcode:
+    :return:
+    '''
+
     try:
         df = pd.read_csv('name.csv')
         if "." in stockcode:
@@ -207,6 +253,11 @@ def get_name(stockcode):
 
 
 def get_stock_code(symbol):
+    '''
+    获取股票代码
+    :param symbol:
+    :return:
+    '''
     try:
         df = pd.read_csv('name.csv')
         if '.' not in symbol:
@@ -221,6 +272,12 @@ def get_stock_code(symbol):
 
 
 def find_real_start_end(start, end):
+    '''
+    获取真实开始结束时间
+    :param start:
+    :param end:
+    :return:
+    '''
     global date_int_list
     # data = pro.query('trade_cal', start_date=start, end_date=end, is_open='1')
     # date_list = list(data['cal_date'])
@@ -234,8 +291,17 @@ def find_real_start_end(start, end):
     return list1
 
 
-# 从数据中切取需要的数据 参数为 csv路径，开始日期，结束日期，往前推时间 往后时间
+#
 def get_need_data(path, start, end, forworddays, backdays):
+    '''
+    从数据中切取需要的数据 参数为 csv路径，开始日期，结束日期，往前推时间 往后时间
+    :param path:
+    :param start:
+    :param end:
+    :param forworddays:
+    :param backdays:
+    :return:
+    '''
     df = pd.read_csv(path)
     date_list = find_real_start_end(start, end)
     start = int(date_list[0])
@@ -254,6 +320,10 @@ def get_need_data(path, start, end, forworddays, backdays):
 
 
 def create_all_dir():
+    '''
+    创建所有需要的文件夹
+    :return:
+    '''
     dir_path = os.getcwd() + os.path.sep + 'multi' + '\\' + 'multi' + str(True)
     dir_path1 = os.getcwd() + os.path.sep + 'multi' + '\\' + 'multi' + str(False)
     # dir_path2 = os.getcwd() + os.path.sep + 'customer' + str(False)
@@ -267,6 +337,10 @@ def create_all_dir():
 
 
 def create_customer_dir():
+    '''
+    创建文件夹
+    :return:
+    '''
     dir_path2 = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(False)
     dir_path3 = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(True)
     dir_path5 = os.getcwd() + os.path.sep + 'customer' + '\\' + 'generate_html'
@@ -277,6 +351,10 @@ def create_customer_dir():
 
 
 def create_csv():
+    '''
+    创建csv文件
+    :return:
+    '''
     list1_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'custmoerlist.csv'
     list2_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'holdlist.csv'
     header1 = ['code', 'name','start','end']
@@ -299,12 +377,23 @@ def create_csv():
 
 
 def write_to_csv(path, content):
+    '''
+    将数据写入csv文件
+    :param path:
+    :param content:
+    :return:
+    '''
     with open(path, 'a', encoding='UTF8', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(content)
 
 
 def create_finished_list(path):
+    '''
+    创建finish记录文件
+    :param path:
+    :return:
+    '''
     header = ['code', 'name', 'span', 'win_percent', 'up_percent', 'diff_percent', 'trade_type']
     if not os.path.exists(path):
         with open(path, 'a', encoding='UTF8', newline='') as f:
@@ -318,6 +407,17 @@ def connect_database(address, port, user, password):
 
 
 def check_process_running(process_list, window, rsi, stoploss, iscustomer, downnotbuy, middleadd):
+    '''
+    检查程序是否运行
+    :param process_list:
+    :param window:
+    :param rsi:
+    :param stoploss:
+    :param iscustomer:
+    :param downnotbuy:
+    :param middleadd:
+    :return:
+    '''
     if not iscustomer:
         dirpath = os.getcwd() + os.path.sep + 'multi' + '\\' + 'multi' + str(downnotbuy) + '\\' + str(rsi) + str(
             stoploss) + str(middleadd) + '\\'
@@ -348,6 +448,19 @@ def check_process_running(process_list, window, rsi, stoploss, iscustomer, downn
 
 
 def check_process_running_customer(process_list, window, rsi, stoploss, iscustomer, downnotbuy, middleadd, start, end):
+    '''
+    自定义回测检查程序是否运行
+    :param process_list:
+    :param window:
+    :param rsi:
+    :param stoploss:
+    :param iscustomer:
+    :param downnotbuy:
+    :param middleadd:
+    :param start:
+    :param end:
+    :return:
+    '''
     if not iscustomer:
         dirpath = os.getcwd() + os.path.sep + 'multi' + '\\' + 'multi' + str(downnotbuy) + '\\' + str(rsi) + str(
             stoploss) + str(middleadd) + '\\'
@@ -372,6 +485,11 @@ def check_process_running_customer(process_list, window, rsi, stoploss, iscustom
 
 
 def get_path(dir):
+    '''
+    获取路径
+    :param dir:
+    :return:
+    '''
     if dir == 'customerFalse':
         return os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(False) + '\\'
     if dir == 'customerTrue':
@@ -395,6 +513,10 @@ def get_differ_path(test_type, percent, stoploss, downnotbuy, middleadd):
 
 
 def different_priority_stock():
+    '''
+    获取股票高低位
+    :return:
+    '''
     # 1 高位
     code_list = pd.read_csv('name.csv')['ts_code'].values.tolist()
     today = datetime.datetime.today().strftime('%Y%m%d')
@@ -415,6 +537,11 @@ def different_priority_stock():
 
 
 def hold_stock(code):
+    '''
+    持股
+    :param code:
+    :return:
+    '''
     df_now = quotation.real(stock_code_convert(code))
     df_now_dic = list(df_now.values())
     # today_split = df_now_dic[0]['date'].split('-')
@@ -427,11 +554,20 @@ def hold_stock(code):
 
 
 def create_holddir():
+    '''
+    创建持股文件文件夹
+    :return:
+    '''
     dir_path = os.getcwd() + os.path.sep + 'hold_dir'
     mkdir(dir_path)
 
 
 def create_holdstock_csv(code):
+    '''
+    创建持股文件
+    :param code:
+    :return:
+    '''
     dir_path = os.getcwd() + os.path.sep + 'hold_dir' + '\\'
     csv_path = dir_path + code + '.csv'
     header = ['trade_date', 'type', 'price', 'cost_price', 'now_num', 'now_principal', 'all_principal',
@@ -458,6 +594,10 @@ def get_priority(priority_csv, code):
 
 
 def settoday():
+    '''
+    设置当前日期
+    :return:
+    '''
     from datetime import datetime, timedelta
     time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     today = datetime.today().strftime('%Y%m%d')
@@ -479,6 +619,11 @@ def settoday():
 
 
 def class_bankuai(code):
+    '''
+    获取板块信息
+    :param code:
+    :return:
+    '''
     try:
         var = bankuai[bankuai['ts_code'] == code].market.values[0]
     except:
@@ -495,6 +640,12 @@ def class_bankuai(code):
 
 
 def getnewestdata(stock,save_dir):
+    '''
+    获取最新数据
+    :param stock:
+    :param save_dir:
+    :return:
+    '''
     stock_code = stock
     offset = timedelta(days=400)
     today = datetime.date.today().strftime('%Y%m%d')
@@ -564,6 +715,10 @@ def insert_nowdata(global_data, stockcode):
 
 
 def split_customer():
+    '''
+    分割自定义回测列表
+    :return:
+    '''
     csv_path = os.getcwd() + os.path.sep + 'customer' + '\\' + 'custmoerlist.csv'
     df = pd.read_csv(csv_path)
     res = []

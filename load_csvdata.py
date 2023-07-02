@@ -9,6 +9,15 @@ from baseFun import get_need_data, get_name
 
 
 def load_finished_code(rsi, stoploss, downnotbuy, type,middleadd):
+    '''
+    显示已完成回测的代码
+    :param rsi:
+    :param stoploss:
+    :param downnotbuy:
+    :param type:
+    :param middleadd:
+    :return:
+    '''
     # 显示已完成回测的代码
     rsi = str(rsi)
     stoploss = str(stoploss)
@@ -29,6 +38,16 @@ def load_finished_code(rsi, stoploss, downnotbuy, type,middleadd):
 
 
 def load_winning_code(rsi, stoploss, percnet, downnotbuy, type,middleadd):
+    '''
+     显示收益率达到要求的代码
+    :param rsi:
+    :param stoploss:
+    :param percnet:
+    :param downnotbuy:
+    :param type:
+    :param middleadd:
+    :return:
+    '''
     # 显示收益率达到要求的代码
     rsi = str(rsi)
     stoploss = str(stoploss)
@@ -58,6 +77,18 @@ def load_winning_code(rsi, stoploss, percnet, downnotbuy, type,middleadd):
 
 
 def load_winning_code_customer(start,end,rsi, stoploss, percnet, downnotbuy, type,middleadd):
+    '''
+    显示收益率达到要求的代码
+    :param start:
+    :param end:
+    :param rsi:
+    :param stoploss:
+    :param percnet:
+    :param downnotbuy:
+    :param type:
+    :param middleadd:
+    :return:
+    '''
     # 显示收益率达到要求的代码
     rsi = str(rsi)
     stoploss = str(stoploss)
@@ -80,6 +111,14 @@ def load_winning_code_customer(start,end,rsi, stoploss, percnet, downnotbuy, typ
     return satisfied_csv.values.tolist()
 
 def load_today_buy(rsi, stoploss,downnotbuy,middleadd):
+    '''
+    筛选今日可买股票
+    :param rsi:
+    :param stoploss:
+    :param downnotbuy:
+    :param middleadd:
+    :return:
+    '''
     today = datetime.datetime.today().strftime('%Y%m%d')
     rsi = str(rsi)
     stoploss = str(stoploss)
@@ -99,6 +138,14 @@ def load_today_buy(rsi, stoploss,downnotbuy,middleadd):
     return satisfied_csv.values.tolist()
 
 def load_today_winning_code_customer(rsi, stoploss, downnotbuy, middleadd):
+    '''
+    筛选今日达到收益要求股票
+    :param rsi:
+    :param stoploss:
+    :param downnotbuy:
+    :param middleadd:
+    :return:
+    '''
     stoploss = str(stoploss)
     dirpath = os.getcwd() + os.path.sep + 'customer' + '\\' + 'customer' + str(downnotbuy) + '\\' + str(
         rsi) + str(

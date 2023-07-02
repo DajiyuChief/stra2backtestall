@@ -12,7 +12,6 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     mainui = MainUI()
     mainui.show()
-    # sys.exit(app.exec_())
     app.exec_()
     me = os.getpid()
     kill_proc_tree(me)

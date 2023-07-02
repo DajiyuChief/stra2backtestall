@@ -50,6 +50,10 @@ class Ui_buyandsell(object):
         buyandsell.setWindowTitle(_translate("buyandsell", "买卖详情"))
 
     def get_html(self):
+        '''
+        获取html
+        :return:
+        '''
         html = ""
         with open("min_kline.html", "r", encoding="utf-8") as f:
             html = f.read()
